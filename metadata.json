@@ -1,0 +1,8 @@
+{
+  "name": "FizjoSzyja & Kręgosłup - Moje Fizjo",
+  "description": "Aplikacja do rehabilitacji kręgosłupa i szyi z personalizowanym planem treningowym, instruktażem wideo/animacji biomechanicznej, analizą bólu AI offline, raportami PDF dla lekarza oraz synchronizacją ze smartwatchem.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
