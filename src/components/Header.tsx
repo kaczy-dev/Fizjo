@@ -1,11 +1,12 @@
 import React from 'react';
 import { 
   Sun, Moon, Laptop, ShieldCheck, Flame, Home, 
-  Dumbbell, Calendar, Stethoscope, FileText, Watch, Menu, X, BookOpen, Trophy
+  Dumbbell, Calendar, Stethoscope, FileText, Watch, Menu, X, BookOpen, Trophy, User, Monitor
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { PWAInstallButton } from './PWAInstallButton';
 
-export type NavTab = 'dashboard' | 'exercises' | 'knowledge' | 'plan' | 'triage' | 'reports' | 'wearables';
+export type NavTab = 'dashboard' | 'exercises' | 'knowledge' | 'plan' | 'triage' | 'ergonomics' | 'reports' | 'wearables' | 'profile';
 
 interface Props {
   activeTab: NavTab;
@@ -32,12 +33,14 @@ export const Header: React.FC<Props> = ({
 
   const navItems: { id: NavTab; label: string; icon: React.FC<{ className?: string }> }[] = [
     { id: 'dashboard', label: 'Pulpit', icon: Home },
-    { id: 'exercises', label: 'Baza Ćwiczeń & Wideo', icon: Dumbbell },
-    { id: 'knowledge', label: 'Baza Wiedzy', icon: BookOpen },
+    { id: 'exercises', label: 'Ćwiczenia', icon: Dumbbell },
     { id: 'plan', label: 'Mój Plan', icon: Calendar },
+    { id: 'ergonomics', label: 'Ergonomia Biurka', icon: Monitor },
     { id: 'triage', label: 'Analiza Bólu AI', icon: Stethoscope },
-    { id: 'reports', label: 'Postępy & Raport PDF', icon: FileText },
-    { id: 'wearables', label: 'Zegarki & Leki', icon: Watch }
+    { id: 'knowledge', label: 'Wiedza', icon: BookOpen },
+    { id: 'reports', label: 'Postępy & Raport', icon: FileText },
+    { id: 'wearables', label: 'Zegarki & Leki', icon: Watch },
+    { id: 'profile', label: 'Profil', icon: Trophy }
   ];
 
   return (
@@ -93,14 +96,23 @@ export const Header: React.FC<Props> = ({
                 id={`nav-${item.id}`}
                 type="button"
                 onClick={() => onSelectTab(item.id)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
                   isActive
-                    ? 'bg-white dark:bg-slate-900 text-teal-600 dark:text-teal-400 shadow-xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-700/50'
+                    ? 'text-teal-700 dark:text-teal-300'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
-                <Icon className="w-3.5 h-3.5" />
-                <span>{item.label}</span>
+                {isActive && (
+                  <motion.span
+                    layoutId="active-nav-indicator"
+                    className="absolute inset-0 bg-white dark:bg-slate-900 rounded-xl shadow-xs border border-slate-200/70 dark:border-slate-700/70"
+                    transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+                  />
+                )}
+                <span className="relative z-10 flex items-center gap-1.5">
+                  <Icon className="w-3.5 h-3.5" />
+                  <span>{item.label}</span>
+                </span>
               </button>
             );
           })}
@@ -174,32 +186,40 @@ export const Header: React.FC<Props> = ({
       </div>
 
       {/* Mobile Drawer */}
-      {mobileMenuOpen && (
-        <div className="lg:hidden px-4 pt-2 pb-4 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 space-y-1">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => {
-                  onSelectTab(item.id);
-                  setMobileMenuOpen(false);
-                }}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
-                  isActive
-                    ? 'bg-teal-50 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400 font-bold'
-                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      )}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            className="lg:hidden px-4 pt-2 pb-4 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 space-y-1 overflow-hidden"
+          >
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => {
+                    onSelectTab(item.id);
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors cursor-pointer ${
+                    isActive
+                      ? 'bg-teal-50 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400 font-bold'
+                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   );
 };

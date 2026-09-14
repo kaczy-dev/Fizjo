@@ -7,9 +7,15 @@ interface Props {
   exercise: Exercise;
   autoPlay?: boolean;
   onPhaseChange?: (phase: 'prepare' | 'move' | 'hold' | 'return') => void;
+  customCycleDurationMs?: number;
 }
 
-export const BiomechanicalAnimator: React.FC<Props> = ({ exercise, autoPlay = true, onPhaseChange }) => {
+export const BiomechanicalAnimator: React.FC<Props> = ({ 
+  exercise, 
+  autoPlay = true, 
+  onPhaseChange,
+  customCycleDurationMs = 6000
+}) => {
   const [isPlaying, setIsPlaying] = useState(autoPlay);
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(1.0);
   const [progress, setProgress] = useState<number>(0); // 0 to 1
@@ -18,7 +24,7 @@ export const BiomechanicalAnimator: React.FC<Props> = ({ exercise, autoPlay = tr
 
   const animationFrameRef = useRef<number | null>(null);
   const startTimeRef = useRef<number>(Date.now());
-  const cycleDuration = (6000 / playbackSpeed); // standard 6s cycle per rep
+  const cycleDuration = (customCycleDurationMs / playbackSpeed); // dynamic cycle per rep adjusted by difficulty
 
   useEffect(() => {
     let lastPhase = currentPhase;

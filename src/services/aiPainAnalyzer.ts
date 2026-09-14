@@ -1,4 +1,4 @@
-import { PainReport, TriageResult } from '../types';
+import { PainReport, TriageResult, PatientMood } from '../types';
 
 export function analyzePainSymptomsOffline(input: {
   vasScore: number;
@@ -7,11 +7,16 @@ export function analyzePainSymptomsOffline(input: {
   triggers: string[];
   associatedSymptoms: string[];
   durationDays?: number;
+  stressLevel?: number;
+  mood?: PatientMood;
+  psychosomaticNotes?: string;
 }): TriageResult {
   const redFlags: string[] = [];
   const associated = input.associatedSymptoms;
   const triggers = input.triggers;
   const vas = input.vasScore;
+  const stress = input.stressLevel;
+  const mood = input.mood;
 
   // 1. Red flags evaluation (Czerwone Flagi - Wytyczne Kliniczne Fizjoterapii Kręgosłupa)
   if (associated.includes('zawroty_glowy') && (associated.includes('nudnosci') || associated.includes('zaburzenia_widzenia'))) {
@@ -125,6 +130,19 @@ export function analyzePainSymptomsOffline(input: {
     recommendedExercises.push('lumbar-extension', 'cat-cow', 'brugger-relief');
     immediateReliefAdvice.push('Pozycja leżenia przodem (na brzuchu) przez 3-5 minut dla odciążenia dysków.');
     immediateReliefAdvice.push('Wstanie i 2-minutowy spacer co 50 minut siedzenia.');
+  }
+
+  // 5. Psychosomatic correlation & autonomic stress modulation
+  if (stress !== undefined && stress >= 6) {
+    explanation += ` Zaobserwowano istotny komponent psychosomatyczny: podwyższony poziom stresu (${stress}/10) bezpośrednio stymuluje układ współczulny, powodując obronny przykurcz mm. czworobocznych i dźwigaczy łopatek.`;
+    immediateReliefAdvice.push('Włącz 3-minutowy trening oddechowy 4-7-8 z asystentem biofeedbacku przed rozpoczęciem ćwiczeń.');
+    if (!recommendedExercises.includes('brugger-relief')) {
+      recommendedExercises.unshift('brugger-relief');
+    }
+  }
+
+  if (mood === 'tense' || mood === 'exhausted' || mood === 'irritated') {
+    doctorQuestions.push('W jaki sposób techniki relaksacji somatycznej (np. relaksacja Jacobsona, oddech przeponowy) mogą wspomóc leczenie dolegliwości karku?');
   }
 
   return {

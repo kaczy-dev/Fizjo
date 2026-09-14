@@ -103,6 +103,11 @@ class SoundEngine {
       }, index * 140);
     });
   }
+
+  // Success positive chime
+  public playSuccess() {
+    this.playCompletion();
+  }
 }
 
 export const soundService = new SoundEngine();

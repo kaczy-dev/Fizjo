@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { 
   Play, Calendar, Stethoscope, FileText, CheckCircle2, 
   Watch, Bell, ShieldCheck, ChevronRight, Wind, Lightbulb, 
-  RefreshCw, BookOpen, Sparkles, ExternalLink, ArrowRight 
+  RefreshCw, BookOpen, Sparkles, ExternalLink, ArrowRight,
+  AlertOctagon, Lock, MessageSquare, ShieldAlert, Monitor,
+  Moon, HeartPulse, Compass
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AppState } from '../services/privacyStorage';
@@ -10,6 +12,8 @@ import { Exercise } from '../types';
 import { EXERCISES } from '../data/exercises';
 import { NavTab } from './Header';
 import { PostureCameraAnalyzer } from './PostureCameraAnalyzer';
+import { WeeklySessionsMiniBarChart } from './WeeklySessionsMiniBarChart';
+import { DailyFitnessGoalRing } from './DailyFitnessGoalRing';
 
 interface Props {
   appState: AppState;
@@ -18,6 +22,12 @@ interface Props {
   onOpenExerciseDetails: (exercise: Exercise) => void;
   onToggleMedication: (medId: string, time: string) => void;
   onSavePostureMeasurement?: (angle: number, diagnosis: string) => void;
+  onOpenRedFlags?: () => void;
+  onOpenConsentModal?: () => void;
+  onOpenFeedbackModal?: () => void;
+  onOpenBreathingModal?: () => void;
+  onOpenBpsModal?: () => void;
+  onOpenAchievements?: () => void;
 }
 
 interface ErgonomicTip {
@@ -135,7 +145,13 @@ export const DashboardView: React.FC<Props> = ({
   onStartActiveSession,
   onOpenExerciseDetails,
   onToggleMedication,
-  onSavePostureMeasurement
+  onSavePostureMeasurement,
+  onOpenRedFlags,
+  onOpenConsentModal,
+  onOpenFeedbackModal,
+  onOpenBreathingModal,
+  onOpenBpsModal,
+  onOpenAchievements
 }) => {
   // Find current day from active plan
   const todayDayIndex = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1; // 0 is Monday
@@ -275,6 +291,92 @@ export const DashboardView: React.FC<Props> = ({
             </button>
           </div>
         </div>
+      </motion.div>
+
+      {/* CLINICAL SAFETY & EMERGENCIES FAST-ACCESS STRIP */}
+      <motion.div
+        variants={itemVariants}
+        className="grid grid-cols-1 sm:grid-cols-3 gap-3"
+      >
+        {/* Red Flags Trigger */}
+        <button
+          type="button"
+          onClick={onOpenRedFlags}
+          className="flex items-center gap-3 p-3.5 rounded-2xl bg-rose-50 hover:bg-rose-100/80 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 border border-rose-200 dark:border-rose-900/60 text-left transition-all group cursor-pointer shadow-xs"
+        >
+          <div className="w-10 h-10 rounded-xl bg-rose-600 text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-xs">
+            <ShieldAlert className="w-5 h-5 animate-pulse" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-xs font-black text-rose-950 dark:text-rose-200 uppercase tracking-tight flex items-center gap-1">
+              <span>Czerwone Flagi (SOR)</span>
+            </div>
+            <div className="text-[11px] text-rose-700 dark:text-rose-300 truncate">
+              Kiedy natychmiast przerwać i zadzwonić 112/999
+            </div>
+          </div>
+        </button>
+
+        {/* GDPR & Informed Consent Trigger */}
+        <button
+          type="button"
+          onClick={onOpenConsentModal}
+          className="flex items-center gap-3 p-3.5 rounded-2xl bg-teal-50 hover:bg-teal-100/80 dark:bg-teal-950/40 dark:hover:bg-teal-900/50 border border-teal-200 dark:border-teal-900/60 text-left transition-all group cursor-pointer shadow-xs"
+        >
+          <div className="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-xs">
+            <ShieldCheck className="w-5 h-5" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-xs font-black text-teal-950 dark:text-teal-200 uppercase tracking-tight">
+              <span>RODO & Zgoda Medyczna</span>
+            </div>
+            <div className="text-[11px] text-teal-700 dark:text-teal-300 truncate">
+              Art. 9 RODO • 100% Suwerenność lokalna
+            </div>
+          </div>
+        </button>
+
+        {/* Clinical Feedback Trigger */}
+        <button
+          type="button"
+          onClick={onOpenFeedbackModal}
+          className="flex items-center gap-3 p-3.5 rounded-2xl bg-slate-100 hover:bg-slate-200/80 dark:bg-slate-800/60 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-left transition-all group cursor-pointer shadow-xs"
+        >
+          <div className="w-10 h-10 rounded-xl bg-slate-800 dark:bg-slate-700 text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-xs">
+            <MessageSquare className="w-5 h-5 text-teal-300" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-tight">
+              <span>Zgłoś uwagę / Błąd</span>
+            </div>
+            <div className="text-[11px] text-slate-600 dark:text-slate-400 truncate">
+              Głos pacjenta & rejestr jakości
+            </div>
+          </div>
+        </button>
+      </motion.div>
+
+      {/* SECTION: Dzienny Cel Sprawnościowy (Okrągły wskaźnik postępu) & Animowany Ogień Serii */}
+      <motion.div variants={itemVariants}>
+        <DailyFitnessGoalRing
+          streakDays={appState.profile.streakDays}
+          completedTodaySession={todayPlanDay.completed}
+          todayEstimatedMinutes={todayPlanDay.estimatedMinutes}
+          completedMicroBreaksCount={appState.profile.completedMicroBreaksCount || 0}
+          totalCompletedSessions={appState.profile.totalCompletedSessions || 0}
+          onStartSession={() => onStartActiveSession(todayExercises)}
+          onOpenAchievements={onOpenAchievements}
+        />
+      </motion.div>
+
+      {/* SECTION: Miniaturowy Wykres Słupkowy Sesji w Bieżącym Tygodniu vs Cel */}
+      <motion.div variants={itemVariants}>
+        <WeeklySessionsMiniBarChart
+          completedDates={appState.profile.completedSessionDates}
+          planDays={appState.activePlan.days}
+          targetGoal={5}
+          onNavigateToPlan={() => onNavigateTab('plan')}
+        />
       </motion.div>
 
       {/* SECTION: Wskazówka dnia (Daily Ergonomics Tip Notification) */}
@@ -471,6 +573,104 @@ export const DashboardView: React.FC<Props> = ({
           onStartExercise={(ex) => onStartActiveSession([ex])}
           onSaveMeasurement={onSavePostureMeasurement}
         />
+      </motion.div>
+
+      {/* SECTION: Faza 3 - Ergonomia Stanowiska & Regulacja Autonomiczna (BPS & Oddech) */}
+      <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        {/* Card 1: Workstation Auditor ISO 9241-5 */}
+        <div 
+          onClick={() => onNavigateTab('ergonomics')}
+          className="group bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 hover:border-teal-500 dark:hover:border-teal-500 rounded-3xl p-6 shadow-xs hover:shadow-md transition-all cursor-pointer flex flex-col justify-between"
+        >
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 rounded-2xl bg-teal-50 dark:bg-teal-950/80 text-teal-600 dark:text-teal-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <Monitor className="w-6 h-6" />
+              </div>
+              {appState.profile.ergonomicAudit ? (
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
+                  Ocena: {appState.profile.ergonomicAudit.calculatedRiskScore}%
+                </span>
+              ) : (
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300">
+                  Audyt DIN EN 527
+                </span>
+              )}
+            </div>
+
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">
+              Audyt Ergonomii Biurka
+            </h3>
+            <p className="text-xs text-slate-600 dark:text-slate-300 mt-2 leading-relaxed">
+              {appState.profile.ergonomicAudit 
+                ? `Wysokość blatu: ${appState.profile.ergonomicAudit.currentDeskHeightCm} cm. Zalecane: ${appState.profile.ergonomicAudit.recommendedSittingDeskHeightCm} cm. Kliknij, by zaktualizować.`
+                : 'Sprawdź wysokość blatu, fotela i kąt monitora wg normy DIN EN 527 / ISO 9241-5. Oblicz nacisk na kręgi szyjne.'}
+            </p>
+          </div>
+
+          <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-bold text-teal-600 dark:text-teal-400">
+            <span>{appState.profile.ergonomicAudit ? 'Zobacz pełen audyt' : 'Rozpocznij audyt biurka'}</span>
+            <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          </div>
+        </div>
+
+        {/* Card 2: Diaphragmatic Breathing (Nerw Błędny) */}
+        <div 
+          onClick={() => onOpenBreathingModal?.()}
+          className="group bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 hover:border-teal-500 dark:hover:border-teal-500 rounded-3xl p-6 shadow-xs hover:shadow-md transition-all cursor-pointer flex flex-col justify-between"
+        >
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 rounded-2xl bg-cyan-50 dark:bg-cyan-950/80 text-cyan-600 dark:text-cyan-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <Wind className="w-6 h-6" />
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-cyan-100 dark:bg-cyan-950 text-cyan-800 dark:text-cyan-300">
+                Nerw Błędny (C3-C5)
+              </span>
+            </div>
+
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">
+              Oddech Przeponowy 4-7-8
+            </h3>
+            <p className="text-xs text-slate-600 dark:text-slate-300 mt-2 leading-relaxed">
+              Płytki oddech szczytowy zmusza mięśnie szyi do podnoszenia żeber 20 000 razy dziennie. Resetuj napięcie karku oddechem dolnożebrowym.
+            </p>
+          </div>
+
+          <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-bold text-cyan-600 dark:text-cyan-400">
+            <span>Uruchom trening oddechu</span>
+            <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          </div>
+        </div>
+
+        {/* Card 3: Biopsychosocial Diary (BPS) */}
+        <div 
+          onClick={() => onOpenBpsModal?.()}
+          className="group bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 hover:border-teal-500 dark:hover:border-teal-500 rounded-3xl p-6 shadow-xs hover:shadow-md transition-all cursor-pointer flex flex-col justify-between"
+        >
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <Moon className="w-6 h-6" />
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-300">
+                Stres • Sen • Bruksizm
+              </span>
+            </div>
+
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">
+              Dziennik Bio-Psycho-Społeczny
+            </h3>
+            <p className="text-xs text-slate-600 dark:text-slate-300 mt-2 leading-relaxed">
+              Zarejestruj poziom stresu, zaciskanie zębów oraz pozycję snu. Bruksizm i spanie na brzuchu są najczęstszą przyczyną porannego kręczu szyi.
+            </p>
+          </div>
+
+          <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-bold text-indigo-600 dark:text-indigo-400">
+            <span>Dodaj wpis do dziennika</span>
+            <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          </div>
+        </div>
       </motion.div>
 
       {/* Two columns: Today exercises preview & Daily meds status */}

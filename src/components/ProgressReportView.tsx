@@ -4,7 +4,7 @@ import {
   RotateCw, ShieldCheck, Plus, CheckCircle2, Trash2, Upload, Lock 
 } from 'lucide-react';
 import { AppState, PrivacyStorageService } from '../services/privacyStorage';
-import { generateDoctorMedicalPdf } from '../services/pdfExport';
+import { generateDoctorMedicalPdf, generatePhysiotherapistReportPdf } from '../services/pdfExport';
 import { PainVasProgressChart } from './PainVasProgressChart';
 import { PainReport } from '../types';
 
@@ -28,6 +28,10 @@ export const ProgressReportView: React.FC<Props> = ({ appState, onUpdateState, o
 
   const handleDownloadPdf = () => {
     generateDoctorMedicalPdf(appState);
+  };
+
+  const handleDownloadPhysioPdf = () => {
+    generatePhysiotherapistReportPdf(appState);
   };
 
   const savePatientInfo = () => {
@@ -143,22 +147,34 @@ export const ProgressReportView: React.FC<Props> = ({ appState, onUpdateState, o
             <span>Dokumentacja Medyczna & Raporty Kliniczne</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
-            Monitorowanie Postępów & Raport dla Lekarza
+            Monitorowanie Postępów & Raporty Medyczne
           </h1>
           <p className="text-sm text-slate-600 dark:text-slate-300 mt-1 max-w-xl">
-            Generuj oficjalne karty przebiegu rehabilitacji w formacie PDF dla lekarza POZ, ortopedy, neurologa lub fizjoterapeuty – 100% lokalnie na Twoim urządzeniu.
+            Generuj oficjalne karty historii bólu oraz podsumowania aktywności w formacie PDF gotowe do przesłania lub wydruku dla fizjoterapeuty i lekarza – 100% lokalnie na Twoim urządzeniu.
           </p>
         </div>
 
-        <button
-          id="export-doctor-pdf-btn"
-          type="button"
-          onClick={handleDownloadPdf}
-          className="flex items-center justify-center gap-2.5 px-6 py-4 rounded-2xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-sm shadow-md hover:shadow-teal-500/25 transition-all shrink-0"
-        >
-          <Download className="w-4 h-4" />
-          <span>Pobierz Raport PDF dla Lekarza</span>
-        </button>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 shrink-0">
+          <button
+            id="export-physio-pdf-btn"
+            type="button"
+            onClick={handleDownloadPhysioPdf}
+            className="flex items-center justify-center gap-2 px-5 py-3.5 rounded-2xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs sm:text-sm shadow-md hover:shadow-teal-500/25 transition-all cursor-pointer"
+          >
+            <Download className="w-4 h-4" />
+            <span>Raport dla Fizjoterapeuty (PDF)</span>
+          </button>
+
+          <button
+            id="export-doctor-pdf-btn"
+            type="button"
+            onClick={handleDownloadPdf}
+            className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs sm:text-sm transition-all cursor-pointer"
+          >
+            <FileText className="w-4 h-4 text-slate-500" />
+            <span>Karta Lekarza POZ</span>
+          </button>
+        </div>
       </div>
 
       {/* KPI Stats Grid */}
@@ -211,6 +227,8 @@ export const ProgressReportView: React.FC<Props> = ({ appState, onUpdateState, o
       {/* Pain VAS Progress Chart (Recharts) */}
       <PainVasProgressChart
         painHistory={appState.painHistory}
+        completedSessionDates={appState.profile.completedSessionDates || []}
+        activePlanDays={appState.activePlan.days}
         onNavigateToTriage={onNavigateToTriage}
         onAddPainReport={handleAddQuickPainEntry}
       />
@@ -270,10 +288,89 @@ export const ProgressReportView: React.FC<Props> = ({ appState, onUpdateState, o
             id="save-patient-info-btn"
             type="button"
             onClick={savePatientInfo}
-            className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 text-white text-xs font-bold transition-colors"
+            className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 text-white text-xs font-bold transition-colors cursor-pointer"
           >
             Zapisz dane do raportu
           </button>
+        </div>
+      </div>
+
+      {/* Dedykowany moduł: Raport dla Fizjoterapeuty (Historia Bólu & Aktywność) */}
+      <div className="bg-white dark:bg-slate-900 border border-teal-200/80 dark:border-teal-900/60 rounded-3xl p-6 sm:p-8 shadow-xs space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-teal-50 dark:bg-teal-950/60 border border-teal-200 dark:border-teal-800 text-teal-700 dark:text-teal-300 text-[10px] font-bold uppercase tracking-wider">
+              <span>Wydruk & Konsultacja</span>
+            </div>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <FileText className="w-5 h-5 text-teal-600" />
+              <span>Historia Bólu & Podsumowanie Aktywności dla Fizjoterapeuty</span>
+            </h2>
+            <p className="text-xs text-slate-600 dark:text-slate-400">
+              Kompleksowy wykaz ostatnich raportów bólu, pomiarów CROM i zrealizowanych sesji ćwiczeń przygotowany do wydruku lub przesłania mailem do gabinetu.
+            </p>
+          </div>
+
+          <button
+            id="download-physio-report-card-btn"
+            type="button"
+            onClick={handleDownloadPhysioPdf}
+            className="flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold shadow-md hover:shadow-teal-500/25 transition-all cursor-pointer shrink-0"
+          >
+            <Download className="w-4 h-4" />
+            <span>Pobierz Raport PDF (A4)</span>
+          </button>
+        </div>
+
+        {/* Ostatnie raporty bólu w tabeli podglądu */}
+        <div className="space-y-3">
+          <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
+            Ostatnie zarejestrowane wpisy w historii bólu ({appState.painHistory.length}):
+          </span>
+
+          {appState.painHistory.length > 0 ? (
+            <div className="divide-y divide-slate-100 dark:divide-slate-800 border border-slate-200/80 dark:border-slate-800 rounded-2xl overflow-hidden text-xs">
+              {appState.painHistory.slice(-4).reverse().map((rep) => (
+                <div key={rep.id} className="p-3.5 bg-slate-50/50 dark:bg-slate-800/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-slate-900 dark:text-white">
+                        {new Date(rep.date).toLocaleDateString('pl-PL')} {new Date(rep.date).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                      <span className="text-slate-400">•</span>
+                      <span className="text-slate-600 dark:text-slate-400 font-medium">
+                        {rep.region === 'neck' ? 'Szyja' : rep.region === 'nape' ? 'Kark/Potylica' : rep.region === 'radiating_arm' ? 'Promieniowanie do ręki' : 'Kręgosłup'}
+                      </span>
+                      <span className="text-slate-400">•</span>
+                      <span className="text-slate-500">
+                        {rep.character === 'sharp' ? 'Ostry' : rep.character === 'stiff' ? 'Sztywność' : 'Tępy'}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-slate-500">
+                      {rep.aiAnalysis?.primarySuspicion || 'Wpis do dziennika'}
+                      {rep.stressLevel !== undefined && ` • Stres: ${rep.stressLevel}/10`}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 self-start sm:self-auto">
+                    <span className={`px-2.5 py-1 rounded-lg font-bold font-mono text-xs ${
+                      rep.vasScore <= 3 
+                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' 
+                        : rep.vasScore <= 6 
+                        ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' 
+                        : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
+                    }`}>
+                      VAS {rep.vasScore}/10
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 text-xs text-slate-500 text-center">
+              Brak zarejestrowanych zgłoszeń bólowych. Wykonaj zgłoszenie w module 'Analiza Bólu AI' lub dodaj szybki punkt na wykresie powyżej.
+            </div>
+          )}
         </div>
       </div>
 

@@ -1,6 +1,346 @@
 import { KnowledgeArticle } from '../types';
 
 export const KNOWLEDGE_ARTICLES: KnowledgeArticle[] = [
+  // =============================================================
+  // SEKCJA 1: ZDROWIE I BIOMECHANIKA KRĘGOSŁUPA (anatomia_zdrowie)
+  // =============================================================
+  {
+    id: 'art-anatomia-cervical',
+    title: 'Anatomia i biomechanika kręgosłupa szyjnego (C1-C7)',
+    subtitle: 'Lordoza fizjologiczna, krążki międzykręgowe i korzenie nerwowe pod lupą kliniczną',
+    category: 'anatomia_zdrowie',
+    readTimeMinutes: 5,
+    summary: 'Odcinek szyjny to najbardziej ruchoma, a zarazem najbardziej narażona na przeciążenia część kręgosłupa. Zrozumienie jego budowy to pierwszy krok do trwałego wyleczenia bólu.',
+    content: [
+      'Kręgosłup szyjny składa się z 7 kręgów oznaczanych symbolami C1–C7. Górny segment (C1–C2, czyli atlas i obrotnik) odpowiada aż za 50% całej rotacji głowy. Dolny segment (C4–C7) przenosi ogromne siły zgięciowe i dźwiga ciężar czaszki.',
+      'Fizjologiczna lordoza szyjna to naturalne wygięcie kręgosłupa w łuk ku przodowi. Działa jak precyzyjny amortyzator hydrauliczny, pochłaniając mikrowstrząsy podczas chodzenia, biegania i skakania. Gdy z powodu pracy przy komputerze głowa wysuwa się w przód, lordoza ulega spłaszczeniu lub wręcz odwróceniu (kifoza szyjna), co dramatycznie przyspiesza zużycie krążków.',
+      'Krążek międzykręgowy (dysk) składa się z galaretowatego jądra miażdżystego i mocnego pierścienia włóknistego. Nie posiada własnych naczyń krwionośnych u dorosłego człowieka – odżywia się wyłącznie poprzez zjawisko dyfuzji, zależne od naprzemiennego ściskania i rozprężania podczas ruchu.',
+      'Między kręgami wychodzą korzenie nerwowe splotu ramiennego (C5, C6, C7, C8, Th1), które unerwiają mięśnie barku, ramienia, przedramienia oraz czucie w palcach dłoni. Z tego powodu podrażnienie dysku w szyi bardzo często objawia się bólem ramienia lub drętwieniem palców.'
+    ],
+    keyTakeaways: [
+      'Kręgi C1-C2 zapewniają połowę skrętu głowy, a segmenty C5-C7 absorbują największe przeciążenia.',
+      'Lordoza szyjna to naturalny amortyzator – jej zniesienie zwielokrotnia nacisk na dyski.',
+      'Dyski odżywiają się jak gąbka: tylko ruch zapewnia im nawodnienie i substancje regenerujące.'
+    ],
+    practicalTips: [
+      'Nie spędzaj w jednej pozycji dłużej niż 45 minut – bezruch dosłownie "odwadnia" Twoje dyski.',
+      'Dbaj o nawodnienie: pij szklankę wody co 2 godziny, by wspomóc sprężystość jądra miażdżystego.',
+      'Stosuj retrakcję szyjną (Chin Tuck), która przywraca osiowe ułożenie kręgów C1-C7.'
+    ],
+    relatedExerciseIds: ['chin-tuck', 'neck-rotations', 'isometric-neck'],
+    icon: 'Activity'
+  },
+  {
+    id: 'art-odcinek-piersiowy',
+    title: 'Rola ruchomości odcinka piersiowego i żeber w zdrowiu karku',
+    subtitle: 'Dlaczego zablokowana klatka piersiowa zmusza szyję do nadmiernej, niszczącej kompensacji',
+    category: 'anatomia_zdrowie',
+    readTimeMinutes: 4,
+    summary: 'Jeśli odcinek piersiowy traci zdolność do wyprostu i rotacji, kark musi przejąć jego pracę. Terapia samej szyi bez mobilizacji klatki piersiowej rzadko przynosi trwały skutek.',
+    content: [
+      'W koncepcji biomechanicznej "Joint-by-Joint" Michaela Boyle’a stawy w ludzkim ciele naprzemiennie wymagają mobilności lub stabilności. Odcinek piersiowy (12 kręgów z połączonymi żebrami) został zaprojektowany jako strefa MOBILNA – ma rotować się i otwierać ku wyprostowi.',
+      'Przewlekła praca siedząca zamienia odcinek piersiowy w zesztywniały pancerz. Kiedy klatka piersiowa zapada się w garb (hiperkifoza), człowiek chcąc patrzeć przed siebie na monitor musi nienaturalnie odgiąć głowę w stawie szczytowo-potylicznym (kompensacyjny przeprost górnej szyi).',
+      'Prowadzi to do potwornego ucisku w rejonie C1-C3 i zaciśnięcia mięśni podpotylicznych. Żadne rozciąganie karku nie pomoże, dopóki nie wyprostujesz i nie zmobilizujesz odcinka piersiowego.',
+      'Dodatkowo zesztywnienie stawów żebrowo-kręgowych blokuje swobodny ruch przepony i ogranicza objętość płuc, zmuszając do szczytowego oddechu obojczykowego.'
+    ],
+    keyTakeaways: [
+      'Sztywny odcinek piersiowy wymusza kompensacyjny przeprost w górnym karku.',
+      'Otwarcie klatki piersiowej natychmiastowo zdejmuje ponad 50% napięcia z mięśni szyi.',
+      'Mobilizacja żeber przywraca naturalny, głęboki oddech przeponowy.'
+    ],
+    practicalTips: [
+      'Wprowadź do codziennej rutyny ćwiczenie "Koci grzbiet" oraz pozycję odciążającą Brüggera.',
+      'Podczas pracy co godzinę oprzyj dłonie za głową i delikatnie wygnij plecy przez oparcie fotela.',
+      'Unikaj garbienia się ze smartfonem na kolanach.'
+    ],
+    relatedExerciseIds: ['cat-cow', 'brugger-relief', 'scapular-retraction'],
+    icon: 'Layers'
+  },
+  {
+    id: 'art-stres-nerw-bledny',
+    title: 'Wpływ stresu, osi HPA i nerwu błędnego na przewlekłe napięcie karku',
+    subtitle: 'Neurobiologia skurczu obronnego: dlaczego emocje i presja w pracy kumulują się w barkach',
+    category: 'anatomia_zdrowie',
+    readTimeMinutes: 5,
+    summary: 'Ewolucyjny odruch walki i ucieczki powoduje automatyczne unoszenie barków do uszu i zaciśnięcie zębów. Poznaj techniki stymulacji nerwu błędnego uwalniające powięź karku.',
+    content: [
+      'Gdy mózg (ciało migdałowate) rejestruje stres – nagły deadline, trudną rozmowę czy nadmiar bodźców – aktywuje współczulną gałąź autonomicznego układu nerwowego oraz oś podwzgórze-przysadka-nadnercza (oś HPA), wyrzucając kortyzol i adrenalinę.',
+      'Ewolucyjnie człowiek w zagrożeniu kuli się, by chronić tętnice szyjne i krtań: mięśnie czworoboczne unoszą barki, mięśnie podpotyliczne odginają głowę w tył, a mięśnie żwacze zaciskają szczękę (bruksizm). W epoce biurowej zagrożeniem jest e-mail od szefa, ale ciało reaguje dokładnie tym samym skurczem mięśniowym!',
+      'Jeśli stres ma charakter przewlekły, mięśnie karku pozostają w permanentnym mikroskurczu. Dochodzi do zaburzenia mikrokrążenia, zakwaszenia tkanek kwasem mlekowym i tworzenia bolesnych punktów spustowych.',
+      'Przełącznikiem uspokajającym jest nerw błędny (nerw czaszkowy X) – główny pień układu przywspółczulnego. Głęboki oddech torem dolnożebrowym z wydłużonym wydechem bezpośrednio stymuluje nerw błędny, obniżając tętno i wysyłając do mięśni karku sygnał do natychmiastowego rozluźnienia.'
+    ],
+    keyTakeaways: [
+      'Napięcie barków to biologiczny odruch obronny osłaniający szyję przed atakiem.',
+      'Zaciskanie szczęki (bruksizm) bezpośrednio napina tylną taśmę karku i mięśnie podpotyliczne.',
+      'Wydłużony wydech (np. 4 sekundy wdech, 7 sekund wydech) pobudza nerw błędny i wygasza skurcz.'
+    ],
+    practicalTips: [
+      'Zastosuj technikę "język na podniebieniu": opuść żuchwę i oprzyj czubek języka za górnymi siekaczami – natychmiast rozluźni to mięśnie szyi.',
+      'Przed trudnym zadaniem wykonaj 5 głębokich oddechów przeponowych w pozycji Brüggera.',
+      'Wieczorem wykonaj 3-minutowy automasaż dołków podpotylicznych.'
+    ],
+    relatedExerciseIds: ['suboccipital-release', 'brugger-relief', 'trapezius-stretch'],
+    icon: 'HeartPulse'
+  },
+
+  // =============================================================
+  // SEKCJA 2: NAJCZĘSTSZE SCHORZENIA I DOLEGLIWOŚCI (schorzenia)
+  // =============================================================
+  {
+    id: 'art-dyskopatia-szyjna',
+    title: 'Dyskopatia szyjna i przepuklina krążka C5-C7: Przyczyny i rwa ramienna',
+    subtitle: 'Jak dochodzi do wypukliny, czym jest rwa barkowa i jak bezpiecznie cofnąć ucisk nerwu',
+    category: 'schorzenia',
+    readTimeMinutes: 5,
+    summary: 'Przepuklina krążka międzykręgowego w odcinku szyjnym najczęściej dotyka segmentów C5-C6 i C6-C7. Odpowiednio dobrane ćwiczenia dekompresyjne pozwalają w 90% przypadków uniknąć operacji.',
+    content: [
+      'Dyskopatia to proces degeneracyjny krążka międzykręgowego, który rozpoczyna się od odwodnienia jądra miażdżystego i mikropęknięć w pierścieniu włóknistym. Pod wpływem stałego zgięcia szyi (np. patrzenie w dół na ekran) jądro miażdżyste jest wypychane ku tyłowi – w stronę kanału kręgowego i korzeni nerwowych.',
+      'Wyróżniamy stadia: protruzja (uwypuklenie krążka z zachowanym pierścieniem), ekstruzja (przerwanie pierścienia i wylanie się jądra poza obrys) oraz sekwestracja (oderwanie fragmentu).',
+      'Objawy dyskopatii szyjnej:',
+      '• Poziom C5-C6: Ból promieniujący po bocznej stronie ramienia i przedramienia do kciuka i palca wskazującego, osłabienie zginania w łokciu (mięsień dwugłowy).',
+      '• Poziom C6-C7: Najczęstsza lokalizacja. Ból promieniuje z tyłu ramienia przez łokieć do palca środkowego, osłabienie prostowania łokcia (mięsień trójgłowy).',
+      '• Uczucie "prądu", mrowienia lub drętwienia w dłoni nasilające się przy pochyleniu głowy w stronę chorą (dodatni test Spurlinga).',
+      'Dobra wiadomość: ludzki organizm ma zdolność do samoistnej resorpcji przepukliny. Odpowiednie ćwiczenia dekompresyjne (McKenzie, retrakcja) tworzą podciśnienie wewnątrz dysku i wspierają centralizację objawów.'
+    ],
+    keyTakeaways: [
+      '90% przepuklin szyjnych leczy się z sukcesem zachowawczo (rehabilitacją i zmianą nawyków).',
+      'Mrowienie kciuka sugeruje poziom C6, mrowienie palca środkowego – poziom C7.',
+      'Zjawisko centralizacji (ból cofa się z ręki do szyi) to dowód skuteczności wdrożonych ćwiczeń.'
+    ],
+    practicalTips: [
+      'Unikaj schylania głowy i czytania z laptopa na kolanach – unieś ekran na linię oczu.',
+      'W fazie podostrej stosuj regularnie retrakcję szyjną (Chin Tuck) co 2 godziny po 8 powtórzeń.',
+      'Przy mrowieniu palców wykonuj bardzo delikatną mobilizację nerwu (Nerve Flossing).'
+    ],
+    relatedExerciseIds: ['chin-tuck', 'nerve-floss', 'isometric-neck'],
+    icon: 'AlertCircle'
+  },
+  {
+    id: 'art-cervicogenic-headache',
+    title: 'Napięciowe bóle głowy pochodzenia szyjnego (Cervicogenic Headache)',
+    subtitle: 'Mechanizm rzutowania bólu z segmentów C0-C2 za oko i w skroń (Jądro trójdzielno-szyjne)',
+    category: 'schorzenia',
+    readTimeMinutes: 4,
+    summary: 'Aż 70% przewlekłych bólów głowy nie ma źródła w mózgu, lecz w zaciśniętych strukturach górnego karku. Dowiedz się, jak odróżnić ból szyjny od migreny.',
+    content: [
+      'Ból głowy pochodzenia szyjnego (Cervicogenic Headache - CEH) to jednostka kliniczna, w której ból rzutowany jest z kręgosłupa szyjnego do czaszki.',
+      'Kluczowym elementem anatomicznym jest tzw. jądro trójdzielno-szyjne (Trigeminocervical Complex) w pniu mózgu. Zbiegają się w nim włókna czuciowe z nerwu trójdzielnego (który unerwia czoło, oko i skroń) oraz z górnych korzeni szyjnych C1, C2 i C3.',
+      'Gdy mięśnie podpotyliczne ulegają stałemu przeciążeniu przez wysuniętą głowę, dochodzi do ucisku na nerw potyliczny większy (nerw Arnolda). Sygnał bólowy z karku "przeskakuje" w pniu mózgu na tory nerwu trójdzielnego – mózg błędnie interpretuje ten impuls jako ból zlokalizowany za gałką oczną lub w skroni!',
+      'Cechy bólu szyjnego: najczęściej jednostronny, rozpoczyna się od potylicy i wędruje ku przodowi (wzór "znaku zapytania"), nasila się przy ruchach głowy lub po wielu godzinach siedzenia przed monitorem.'
+    ],
+    keyTakeaways: [
+      'Ból za okiem i w skroni bardzo często pochodzi z mięśni podpotylicznych C1-C2.',
+      'Zwykłe leki przeciwbólowe dają tylko krótką ulgę, bo nie usuwają ucisku mechanicznego na nerw Arnolda.',
+      'Dezaktywacja punktów spustowych podpotylicznych potrafi wygasić ból w kilka minut.'
+    ],
+    practicalTips: [
+      'Wykonaj automasaż dołków podpotylicznych: uciśnij kciukami punkty tuż pod kością czaszki na 45 sekund.',
+      'Sprawdź oświetlenie i odległość monitora – mrużenie oczu dodatkowo napina mięśnie karku.',
+      'Połóż się na plecach z małym wałkiem pod karkiem (np. zwiniętym ręcznikiem) na 10 minut.'
+    ],
+    relatedExerciseIds: ['suboccipital-release', 'chin-tuck', 'trapezius-stretch'],
+    icon: 'Zap'
+  },
+  {
+    id: 'art-facet-syndrome',
+    title: 'Zespół stawów międzywyrostkowych (Facet Joint Syndrome) i ostry "postrzał" karku',
+    subtitle: 'Dlaczego rano budzisz się z zablokowaną głową i nie możesz spojrzeć przez ramię?',
+    category: 'schorzenia',
+    readTimeMinutes: 4,
+    summary: 'Stawy międzywyrostkowe kierują ruchami kręgów szyjnych. Gdy dojdzie do ich zablokowania lub stanu zapalnego, mięśnie wokół natychmiastowo wpadają w skurcz obronny.',
+    content: [
+      'Każdy kręg szyjny łączy się z kręgiem powyżej i poniżej za pomocą pary stawów międzywyrostkowych (stawów fasetowych). Są one pokryte chrząstką szklistą, otoczone torebką stawową i bogato unerwione przez gałązki przyśrodkowe nerwów rdzeniowych.',
+      'Gdy śpisz w złej pozycji (np. na brzuchu z głową skręconą w bok) lub wykonasz nagły, niekontrolowany ruch, może dojść do zakleszczenia fałdu łąkotkopodobnego torebki stawowej między powierzchniami stawowymi.',
+      'Organizm reaguje błyskawicznie: sąsiadujące mięśnie (dźwigacz łopatki, mięśnie wielodzielne) wpadają w ostry, bolesny skurcz obronny (tzw. "postrzał karku" lub kręcz szyi). Każda próba skrętu lub odchylenia głowy wywołuje ostry ból kłujący.',
+      'W leczeniu ostrego zablokowania stawowego najważniejsze jest uspokojenie skurczu mięśniowego za pomocą ciepła i łagodnych ruchów osiowych – próby siłowego "przełamywania" blokady tylko nasilają stan zapalny.'
+    ],
+    keyTakeaways: [
+      'Ostry postrzał karku to w większości przypadków zablokowanie stawu fasetowego i odruchowy skurcz obronny mięśni.',
+      'Nigdy nie "strzelaj" karkiem na siłę – gwałtowna manipulacja w stanie ostrym uszkadza torebkę stawową.',
+      'Ciepły okład i łagodne mikrorotacje w bezpiecznym zakresie przynoszą najszybszą ulgę.'
+    ],
+    practicalTips: [
+      'W pierwszych godzinach zastosuj ciepły prysznic skierowany na kark przez 10 minut.',
+      'Wykonuj mikroobroty głowy (amplituda tylko 10-15 stopni) w strefie całkowicie bezbólowej.',
+      'Sprawdź swoją poduszkę: jeśli jest zbyt wysoka lub śpisz na brzuchu, zmień nawyk na spanie na plecach.'
+    ],
+    relatedExerciseIds: ['neck-rotations', 'isometric-neck', 'trapezius-stretch'],
+    icon: 'ShieldCheck'
+  },
+  {
+    id: 'art-tech-neck-biomechanika',
+    title: 'Syndrom Tech-Neck: Biomechanika przeciążeń głowy i karku',
+    subtitle: 'Dlaczego pochylenie głowy nad smartfonem generuje obciążenie równe 27 kilogramom?',
+    category: 'tech_neck',
+    readTimeMinutes: 4,
+    summary: 'Prawidłowa biomechanika głowy a siły grawitacji: jak milimetry pochylenia zmieniają nacisk na krążki C5-C7 i niszczą naturalną lordozę.',
+    content: [
+      'Głowa dorosłego człowieka waży przeciętnie 4.5 – 5.5 kg. W pozycji neutralnej kręgosłup szyjny doskonale radzi sobie z tym obciążeniem dzięki amortyzującej lordozie szyjnej (krzywiźnie ku przodowi).',
+      'Wraz z pochylaniem głowy w przód (np. patrząc w dół na telefon w dłoniach), dźwignia biomechaniczna rośnie w sposób dramatyczny:',
+      '• Przy pochyleniu 15° odczuwalny ciężar głowy dla karku wynosi 12 kg.',
+      '• Przy kącie 30° obciążenie osiąga 18 kg.',
+      '• Przy kącie 45° kark dźwiga 22 kg.',
+      '• Przy skrajnym pochyleniu 60° (typowym dla pisania SMS-ów) nacisk wynosi aż 27 kg!',
+      'Wyobraź sobie noszenie 8-letniego dziecka na samej szyi przez 3-4 godziny każdego dnia. Nic dziwnego, że krążki ulegają odwodnieniu, a mięśnie wpadają w stan przewlekłego stanu zapalnego.'
+    ],
+    keyTakeaways: [
+      'Kąt 60° = 27 kg obciążenia dla krążków C5-C7.',
+      'Tech-neck powoduje spłaszczenie fizjologicznej lordozy szyjnej i zwyrodnienia.',
+      'Rozwiązaniem nie jest rezygnacja z technologii, lecz uniesienie urządzenia do linii oczu.'
+    ],
+    practicalTips: [
+      'Podnoś telefon na wysokość klatki piersiowej lub brody – zginaj ręce w łokciach, a nie szyję.',
+      'Stosuj ćwiczenie Chin Tuck (cofanie brody) jako codzienną szczoteczkę do zębów dla kręgosłupa.',
+      'Wykonuj rozciąganie mięśnia piersiowego, by przeciwdziałać zapadaniu się klatki piersiowej.'
+    ],
+    relatedExerciseIds: ['chin-tuck', 'suboccipital-release', 'scapular-retraction'],
+    icon: 'Smartphone'
+  },
+
+  // =============================================================
+  // SEKCJA 3: KORZYŚCI KONKRETNYCH ĆWICZEŃ (korzysci_cwiczen)
+  // =============================================================
+  {
+    id: 'art-benefity-chin-tuck',
+    title: 'Retrakcja szyjna (Chin Tuck): Biomechanika głębokich zginaczy i dekompresja C5-C7',
+    subtitle: 'Dlaczego to absolutnie najważniejsze ćwiczenie rehabilitacyjne dla każdego człowieka XXI wieku?',
+    category: 'korzysci_cwiczen',
+    readTimeMinutes: 5,
+    summary: 'Cofanie brody (Chin Tuck) to nie tylko prosta zmiana pozycji – to precyzyjny manewr biomechaniczny aktywujący wygaszone mięśnie głębokie i otwierający otwory międzykręgowe.',
+    content: [
+      'U 95% osób z bólami karku dochodzi do tzw. zespołu skrzyżowania górnego (Upper Crossed Syndrome wg Jandy): powierzchowne zginacze (MOS) i prostowniki karku są nadmiernie napięte i skrócone, podczas gdy głębokie zginacze szyi (Longus colli i Longus capitis) ulegają atrofii i wyłączeniu neurologicznemu.',
+      'Ruch retrakcji szyi (poziome cofnięcie głowy) powoduje jednoczesne działanie w dwóch strefach:',
+      '1. Aktywacja zginaczy głębokich: Te małe, ułożone tuż przed trzonami kręgów mięśnie stabilizują każdy segment szyjny od przodu, działając jak wewnętrzny gorset ortopedyczny.',
+      '2. Dekompresja otworów międzykręgowych: Cofnięcie brody otwiera przestrzeń dla korzeni nerwowych C5, C6 i C7 o 15-20%, natychmiast odbarczając uciśnięte nerwy.',
+      '3. Pasywne rozciąganie mięśni podpotylicznych: Czaszka przesuwa się ku tyłowi, co wydłuża spięte więzadła i powięź u podstawy czaszki, uwalniając od napięciowych bólów głowy.',
+      'Wykonuj 8-10 powtórzeń retrakcji z 4-sekundowym zatrzymaniem co 2-3 godziny pracy przy komputerze.'
+    ],
+    keyTakeaways: [
+      'Chin Tuck reaktywuje mięśnie m. longus colli, które u pracowników biurowych są w uśpieniu.',
+      'Zwiększa światło otworów międzykręgowych i redukuje ucisk na korzenie nerwowe C5-C7.',
+      'Ruch musi być idealnie poziomy – cofaj brodę jak szufladę, nie pochylaj głowy w dół.'
+    ],
+    practicalTips: [
+      'Połóż dwa palce na brodzie, aby czuć wektor ruchu w płaszczyźnie horyzontalnej.',
+      'Oddychaj spokojnie w trakcie 4-sekundowego zatrzymania – nie zaciskaj gardła.',
+      'Wykonuj serię natychmiast po wstaniu z łóżka oraz przed każdym posiłkiem.'
+    ],
+    relatedExerciseIds: ['chin-tuck', 'isometric-neck'],
+    icon: 'CheckCircle'
+  },
+  {
+    id: 'art-benefity-brugger',
+    title: 'Pozycja odciążająca Brüggera: Globalny reset łańcuchów mięśniowych',
+    subtitle: 'Jak 30 sekund w ciągu dnia całkowicie odwraca zgarbioną pozycję siedzącą',
+    category: 'korzysci_cwiczen',
+    readTimeMinutes: 4,
+    summary: 'Szwajcarski neurolog dr Alois Brügger opracował pozycję, która wykorzystuje zjawisko hamowania zwrotnego (reciprocal inhibition), by natychmiast rozluźnić zaciśnięte mięśnie klatki i szyi.',
+    content: [
+      'Siedzenie przy komputerze zamyka ciało w tzw. łańcuchu zgięciowym: podwinięta miednica, zgarbione plecy, barki wysunięte ku przodowi (protrakcja łopatek), rotacja wewnętrzna ramion i wysunięta głowa.',
+      'Pozycja odciążająca Brüggera to jej dokładne, lustrzane przeciwieństwo biomechaniczne:',
+      '• Ustawienie miednicy: Siad na przedniej krawędzi krzesła i lekkie przodopochylenie miednicy automatycznie odbudowuje lordozę lędźwiową.',
+      '• Retrakcja i depresja łopatek: Ściągnięcie łopatek ku dołowi aktywuje dolny czworoboczny i zębaty przedni, co na drodze neurologicznej zmusza mięśnie piersiowe do natychmiastowego odpuszczenia skurczu.',
+      '• Rotacja zewnętrzna ramion: Otwarcie dłoni wnętrzami w przód i kciukami w tył otwiera przestrzeń podbarkową i odciąża splot ramienny.',
+      '• Osiowe wydłużenie szyi: Wzrok skierowany przed siebie i delikatne cofnięcie brody przywraca optymalny przepływ krwi przez tętnice kręgowe.',
+      'Wystarczy 30 sekund i 3 głębokie oddechy dolnożebrowe co 60 minut, by zapobiec utrwalaniu się wad postawy.'
+    ],
+    keyTakeaways: [
+      'Brügger to złoty standard ergonomii biurowej – angażuje całe ciało od miednicy po czubek głowy.',
+      'Rotacja zewnętrzna rąk odblokowuje klatkę piersiową i ułatwia dotlenienie mózgu.',
+      'Idealne ćwiczenie do wykonania w trakcie spotkań online lub przerw w pracy.'
+    ],
+    practicalTips: [
+      'Przesuń się na przednią krawędź fotela, stopy oprzyj płasko na podłożu szerzej niż biodra.',
+      'Zwróć uwagę na dłonie: kciuki muszą celować w tył za Twoje plecy.',
+      'Weź głęboki wdech rozszerzający dolne żebra, a z wydechem poczuj, jak barki opadają ku podłodze.'
+    ],
+    relatedExerciseIds: ['brugger-relief', 'scapular-retraction', 'chin-tuck'],
+    icon: 'Sparkles'
+  },
+  {
+    id: 'art-benefity-podpotyliczne',
+    title: 'Automasaż podpotyliczny i odruch oczno-ruchowy: Neurologiczny klucz do ulgi',
+    subtitle: 'Dlaczego rozluźnienie 4 małych mięśni pod czaszką wygasza ból głowy i odpręża wzrok',
+    category: 'korzysci_cwiczen',
+    readTimeMinutes: 4,
+    summary: 'Mięśnie podpotyliczne posiadają największe zagęszczenie wrzecionek nerwowo-mięśniowych w całym ludzkim ciele. Poznaj ich ścisły związek z ruchem gałek ocznych.',
+    content: [
+      'Tuż pod kością potyliczną znajdują się 4 pary drobnych mięśni: m. prosty tylny większy i mniejszy głowy oraz m. skośny górny i dolny głowy. Choć są maleńkie, pełnią kluczową rolę w orientacji przestrzennej i koordynacji wzrokowo-ruchowej.',
+      'Na 1 gram tkanki mięśni podpotylicznych przypada aż 36 wrzecionek czuciowych (dla porównania: w mięśniu pośladkowym jest to zaledwie 1 wrzecionko!). Oznacza to, że są one wprost naszpikowane sensorami propriocepcji.',
+      'Odruch oczno-ruchowy (Oculo-cervical reflex): Za każdym razem, gdy Twoje oczy przesuwają się po ekranie z lewej do prawej, mięśnie podpotyliczne wykonują mikroskurcze, by ustabilizować głowę. Po 8 godzinach wpatrywania się w monitor są one w stanie skrajnego zmęczenia i tężcowego skurczu!',
+      'Automasaż dołków podpotylicznych i jednoczesne powolne ruchy gałek ocznych wywołują zjawisko relaksacji poizometrycznej (PIR), uwalniając uwięziony nerw potyliczny większy i natychmiastowo likwidując tępy ból głowy.'
+    ],
+    keyTakeaways: [
+      'Mięśnie podpotyliczne reagują na każdy ruch Twoich oczu – zmęczenie wzroku to zmęczenie karku.',
+      'Ich rozluźnienie natychmiast poprawia krążenie mózgowe przez tętnice kręgowe.',
+      'Regularny automasaż to najskuteczniejsza niefarmakologiczna metoda na napięciowe bóle głowy.'
+    ],
+    practicalTips: [
+      'Oprzyj kciuki w zagłębieniach tuż pod kością czaszki po obu stronach kręgosłupa.',
+      'Zamknij oczy, skieruj wzrok powoli w dół bez poruszania głową, a z wydechem delikatnie zwiększ nacisk w górę.',
+      'Oddychaj powoli przez nos, pozwalając tkankom pod kciukami stopniowo mięknąć.'
+    ],
+    relatedExerciseIds: ['suboccipital-release', 'neck-rotations'],
+    icon: 'Eye'
+  },
+  {
+    id: 'art-benefity-nerve-floss',
+    title: 'Neurodynamika i ślizg nerwu pośrodkowego (Nerve Floss): Ulga w mrowieniu palców',
+    subtitle: 'Jak przywrócić elastyczność i swobodny ślizg pnia nerwowego bez szkodliwego naciągania',
+    category: 'korzysci_cwiczen',
+    readTimeMinutes: 5,
+    summary: 'Nerwy obwodowe potrzebują swobodnego ślizgu w swoich osłonkach. Mobilizacja neurodynamiczna uwalnia nerw z mikroucisków i przywraca prawidłowe przewodzenie.',
+    content: [
+      'Nerwy obwodowe – takie jak nerw pośrodkowy, łokciowy czy promieniowy – nie są sztywnymi kablami. W trakcie ruchów kończyny górnej i szyi muszą przesuwać się wzdłuż swoich pochewek nawet o 15–20 milimetrów.',
+      'Gdy w wyniku dyskopatii szyjnej lub obrzęku tkanek w rejonie mięśni pochyłych dochodzi do zwężenia przestrzeni, nerw traci zdolność do ślizgu. Przy każdym ruchu ręką dochodzi do jego mechanicznego drażnienia, co objawia się pieczeniem, "prądami" i mrowieniem palców.',
+      'Różnica między rozciąganiem a ślizgiem (Flossing):',
+      '• Rozciąganie nerwu (złe w stanie zapalnym!): Naciąganie nerwu z obu stron jednocześnie (np. wyprost ręki i skłon głowy w przeciwną stronę) zaciska naczynia krwionośne nerwu (vasa nervorum) i nasila objawy.',
+      '• Ślizg nerwowy (Nerve Flossing): Kiedy prostujesz rękę w łokciu i nadgarstku, JEDNOCZEŚNIE przechylasz głowę W TĘ SAMĄ STRONĘ. Nerw wysuwa się z kanału szyjnego, nie będąc napiętym. Gdy zginasz rękę, odchylasz głowę – nerw płynnie powraca. Działa to dokładnie jak nitkowanie zębów!',
+      'Prawidłowo wykonany ślizg nerwowy poprawia mikrokrążenie wewnątrznerwowe i redukuje obrzęk w zaledwie kilka dni.'
+    ],
+    keyTakeaways: [
+      'Nerwów nie wolno silnie rozciągać – wolno je jedynie łagodnie "nitkować" (flossing).',
+      'Głowa przechyla się ZAWSZE w stronę wyciąganej ręki, aby odciążyć korzeń nerwowy.',
+      'Ćwiczenie nie może wywoływać ostrego prądu – pracuj wyłącznie w strefie komfortu.'
+    ],
+    practicalTips: [
+      'Wykonuj ruch płynnie i powoli jak w tańcu – 8 do 10 powtórzeń na stronę w zupełności wystarczy.',
+      'Jeśli w trakcie poczujesz silne mrowienie, zmniejsz kąt wyprostu nadgarstka.',
+      'Wykonuj ćwiczenie 2 razy dziennie, najlepiej w pozycji stojącej z opuszczonymi barkami.'
+    ],
+    relatedExerciseIds: ['nerve-floss', 'chin-tuck'],
+    icon: 'Activity'
+  },
+  {
+    id: 'art-benefity-stabilizacja-lopatek',
+    title: 'Stabilizacja łopatek i mięsień czworoboczny dolny: Tarcza obronna dla karku',
+    subtitle: 'Dlaczego słabe mięśnie międzyłopatkowe zmuszają kark do dźwigania całego ciężaru rąk',
+    category: 'korzysci_cwiczen',
+    readTimeMinutes: 4,
+    summary: 'Łopatka jest jedynym ruchomym połączeniem kończyny górnej z tułowiem. Gdy opada i rotuje w dół, mięśnie szyi są stale naciągane jak liny holownicze.',
+    content: [
+      'Ramię człowieka waży przeciętnie 4–5 kg. Obie ręce to blisko 10 kg masy wiszącej na klatce piersiowej. W prawidłowych warunkach ciężar ten jest stabilizowany przez dolne partie mięśnia czworobocznego (dolne łopatki) oraz mięsień zębaty przedni.',
+      'U osób pracujących przy biurku dochodzi do utraty siły mięśni międzyłopatkowych. W efekcie łopatki "odstają" od klatki i rotują ku przodowi. W tej sytuacji cały ciężar ramion spada na mięsień dźwigacz łopatki oraz górną część czworobocznego – czyli mięśnie wczepiające się bezpośrednio w kręgi szyjne!',
+      'Mięśnie szyi nie są stworzone do dźwigania rąk. Przemęczone, wpadają w przewlekły ból i pieczenie w strefie między karkiem a barkiem.',
+      'Wzmacnianie dolnego czworobocznego za pomocą ćwiczeń w literę "W-to-Y" oraz retrakcji łopatek przywraca równowagę sił i trwale zdejmuje balast z Twojej szyi.'
+    ],
+    keyTakeaways: [
+      'Pieczenie karku to w 80% wina słabych mięśni stabilizujących łopatkę w dole.',
+      'Silny mięsień czworoboczny dolny zdejmuje 10 kg ciężaru rąk z kręgosłupa szyjnego.',
+      'Wzmocnienie łopatek koryguje sylwetkę i likwiduje nawyk garbienia się.'
+    ],
+    practicalTips: [
+      'Wykonuj ćwiczenie "W-to-Y" 3 razy w tygodniu po 10-12 powtórzeń.',
+      'Podczas ćwiczenia pamiętaj o złotej zasadzie: trzymaj barki jak najdalej od uszu.',
+      'Zadbaj o podłokietniki fotela – oparcie łokci natychmiast odciąża mięśnie łopatek.'
+    ],
+    relatedExerciseIds: ['scapular-retraction', 'brugger-relief'],
+    icon: 'Layers'
+  },
+
+  // =============================================================
+  // SEKCJA 4: ERGONOMIA, HIGIENA PRACY I SEN
+  // =============================================================
   {
     id: 'art-ergonomia-biurka',
     title: 'Ergonomia stanowiska komputerowego – złote standardy biomechaniczne',
@@ -51,35 +391,6 @@ export const KNOWLEDGE_ARTICLES: KnowledgeArticle[] = [
     ],
     relatedExerciseIds: ['brugger-relief', 'chin-tuck'],
     icon: 'Clock'
-  },
-  {
-    id: 'art-tech-neck-biomechanika',
-    title: 'Syndrom Tech-Neck: Biomechanika przeciążeń głowy i karku',
-    subtitle: 'Dlaczego pochylenie głowy nad smartfonem generuje obciążenie równe 27 kilogramom?',
-    category: 'tech_neck',
-    readTimeMinutes: 4,
-    summary: 'Prawidłowa biomechanika głowy a siły grawitacji: jak milimetry pochylenia zmieniają nacisk na krążki C5-C7 i niszczą naturalną lordozę.',
-    content: [
-      'Głowa dorosłego człowieka waży przeciętnie 4.5 – 5.5 kg. W pozycji neutralnej kręgosłup szyjny doskonale radzi sobie z tym obciążeniem dzięki amortyzującej lordozie szyjnej (krzywiźnie ku przodowi).',
-      'Wraz z pochylaniem głowy w przód (np. patrząc w dół na telefon w dłoniach), dźwignia biomechaniczna rośnie w sposób dramatyczny:',
-      '• Przy pochyleniu 15° odczuwalny ciężar głowy dla karku wynosi 12 kg.',
-      '• Przy kącie 30° obciążenie osiąga 18 kg.',
-      '• Przy kącie 45° kark dźwiga 22 kg.',
-      '• Przy skrajnym pochyleniu 60° (typowym dla pisania SMS-ów) nacisk wynosi aż 27 kg!',
-      'Wyobraź sobie noszenie 8-letniego dziecka na samej szyi przez 3-4 godziny każdego dnia. Nic dziwnego, że krążki ulegają odwodnieniu, a mięśnie wpadają w stan przewlekłego stanu zapalnego.'
-    ],
-    keyTakeaways: [
-      'Kąt 60° = 27 kg obciążenia dla krążków C5-C7.',
-      'Tech-neck powoduje spłaszczenie fizjologicznej lordozy szyjnej i zwyrodnienia.',
-      'Rozwiązaniem nie jest rezygnacja z technologii, lecz uniesienie urządzenia do linii oczu.'
-    ],
-    practicalTips: [
-      'Podnoś telefon na wysokość klatki piersiowej lub brody – zginaj ręce w łokciach, a nie szyję.',
-      'Stosuj ćwiczenie Chin Tuck (cofanie brody) jako codzienną szczoteczkę do zębów dla kręgosłupa.',
-      'Wykonuj rozciąganie mięśnia piersiowego, by przeciwdziałać zapadaniu się klatki piersiowej.'
-    ],
-    relatedExerciseIds: ['chin-tuck', 'suboccipital-release', 'scapular-retraction'],
-    icon: 'Smartphone'
   },
   {
     id: 'art-punkty-spustowe',

@@ -37,6 +37,17 @@ export const ALL_ACHIEVEMENTS: Achievement[] = [
     maxProgress: 7
   },
   {
+    id: 'streak_14',
+    title: '14 Dni Niezłomności',
+    description: 'Dwa pełne tygodnie regularnych ćwiczeń – utrwalona pamięć biomechaniczna.',
+    category: 'streak',
+    tier: 'silver',
+    icon: 'Flame',
+    unlocked: false,
+    progress: 0,
+    maxProgress: 14
+  },
+  {
     id: 'streak_30',
     title: 'Miesiąc Mistrza Kręgosłupa',
     description: '30-dniowa seria codziennych ćwiczeń – nowa jakość życia bez bólu.',
@@ -48,15 +59,59 @@ export const ALL_ACHIEVEMENTS: Achievement[] = [
     maxProgress: 30
   },
   {
+    id: 'posture_master',
+    title: 'Cyfrowy Strażnik Postawy',
+    description: 'Wykonano fotograficzną analizę kąta czaszkowo-kręgowego (CVA) lub uruchomiono Strażnika Biurka.',
+    category: 'rehab',
+    tier: 'silver',
+    icon: 'Activity',
+    unlocked: false,
+    progress: 0,
+    maxProgress: 1
+  },
+  {
     id: 'breathing_master',
     title: 'Świadomy Oddech Przeponowy',
-    description: 'Wykonano ćwiczenie z wykorzystaniem wizualnego przewodnika oddechowego.',
+    description: 'Wykonano ćwiczenie z wykorzystaniem wizualnego przewodnika oddechowego i stymulacji nerwu błędnego.',
     category: 'breathing',
     tier: 'bronze',
     icon: 'Wind',
     unlocked: false,
     progress: 0,
     maxProgress: 1
+  },
+  {
+    id: 'bps_diary_user',
+    title: 'Dziennik Biopsychospołeczny',
+    description: 'Zarejestrowano wpływ stresu, snu i ergonomii na odczuwanie bólu w Dzienniku BPS.',
+    category: 'pain_tracking',
+    tier: 'bronze',
+    icon: 'Sparkles',
+    unlocked: false,
+    progress: 0,
+    maxProgress: 1
+  },
+  {
+    id: 'ergonomics_auditor',
+    title: 'Audytor Ergonomii Biurowej',
+    description: 'Przeprowadzono pełny audyt stanowiska pracy zgodny z normą DIN EN 527.',
+    category: 'knowledge',
+    tier: 'silver',
+    icon: 'BookOpen',
+    unlocked: false,
+    progress: 0,
+    maxProgress: 1
+  },
+  {
+    id: 'micro_break_hero',
+    title: 'Pogromca Monotonii Siedzącej',
+    description: 'Wykonano co najmniej 5 aktywnych mikro-przerw odciążających szyję w ciągu pracy.',
+    category: 'rehab',
+    tier: 'bronze',
+    icon: 'Award',
+    unlocked: false,
+    progress: 0,
+    maxProgress: 5
   },
   {
     id: 'knowledge_seeker',
@@ -103,12 +158,23 @@ export const ALL_ACHIEVEMENTS: Achievement[] = [
     maxProgress: 1
   },
   {
+    id: 'mobility_champ',
+    title: 'Goniometria w Normie',
+    description: 'Zarejestrowano obiektywny test zakresów ruchomości odcinka szyjnego CROM.',
+    category: 'rehab',
+    tier: 'silver',
+    icon: 'Trophy',
+    unlocked: false,
+    progress: 0,
+    maxProgress: 1
+  },
+  {
     id: 'tech_neck_slayer',
     title: 'Pogromca Tech-Neck',
     description: 'Ukończono łącznie 10 sesji rehabilitacyjnych.',
     category: 'rehab',
     tier: 'gold',
-    icon: 'Sparkles',
+    icon: 'Crown',
     unlocked: false,
     progress: 0,
     maxProgress: 10
@@ -126,6 +192,11 @@ export interface AchievementEvaluationContext {
   usedBreathingGuide?: boolean;
   generatedPdf?: boolean;
   hasMedications?: boolean;
+  hasPostureMeasurement?: boolean;
+  hasBpsLog?: boolean;
+  hasErgonomicAudit?: boolean;
+  microBreaksCount?: number;
+  hasMobilityTest?: boolean;
 }
 
 export interface EvaluateAchievementsOptions {
@@ -153,7 +224,12 @@ export function evaluateAchievements(
       painReportsCount: s.painHistory?.length || 0,
       usedBreathingGuide: usedBreathing,
       generatedPdf: true,
-      hasMedications: (s.medications?.length || 0) > 0
+      hasMedications: (s.medications?.length || 0) > 0,
+      hasPostureMeasurement: Array.isArray(s.painHistory) && s.painHistory.some((r: any) => r.postureTiltAngleDeg !== undefined),
+      hasBpsLog: Array.isArray(s.painHistory) && s.painHistory.some((r: any) => !!r.psychosomaticNotes),
+      hasErgonomicAudit: !!s.profile?.ergonomicAudit,
+      microBreaksCount: s.profile?.completedMicroBreaksCount || s.reminders?.totalMicroBreaksCompleted || 0,
+      hasMobilityTest: (s.profile?.mobilityTests?.length || 0) > 0
     };
   } else {
     context = contextOrOptions as AchievementEvaluationContext;
@@ -188,13 +264,33 @@ export function evaluateAchievements(
         progress = Math.min(7, streak);
         if (progress >= 7) unlocked = true;
         break;
+      case 'streak_14':
+        progress = Math.min(14, streak);
+        if (progress >= 14) unlocked = true;
+        break;
       case 'streak_30':
         progress = Math.min(30, streak);
         if (progress >= 30) unlocked = true;
         break;
+      case 'posture_master':
+        progress = context.hasPostureMeasurement ? 1 : (currentSet.has('posture_master') ? 1 : 0);
+        if (progress >= 1) unlocked = true;
+        break;
       case 'breathing_master':
         progress = context.usedBreathingGuide ? 1 : (currentSet.has('breathing_master') ? 1 : 0);
         if (progress >= 1) unlocked = true;
+        break;
+      case 'bps_diary_user':
+        progress = context.hasBpsLog ? 1 : (currentSet.has('bps_diary_user') ? 1 : 0);
+        if (progress >= 1) unlocked = true;
+        break;
+      case 'ergonomics_auditor':
+        progress = context.hasErgonomicAudit ? 1 : (currentSet.has('ergonomics_auditor') ? 1 : 0);
+        if (progress >= 1) unlocked = true;
+        break;
+      case 'micro_break_hero':
+        progress = Math.min(5, context.microBreaksCount || 0);
+        if (progress >= 5) unlocked = true;
         break;
       case 'knowledge_seeker':
         progress = Math.min(3, articles);
@@ -205,11 +301,15 @@ export function evaluateAchievements(
         if (progress >= 1) unlocked = true;
         break;
       case 'doctor_friend':
-        progress = context.generatedPdf ? 1 : 0;
+        progress = context.generatedPdf ? 1 : (currentSet.has('doctor_friend') ? 1 : 0);
         if (progress >= 1) unlocked = true;
         break;
       case 'medication_guardian':
         progress = context.hasMedications ? 1 : 0;
+        if (progress >= 1) unlocked = true;
+        break;
+      case 'mobility_champ':
+        progress = context.hasMobilityTest ? 1 : (currentSet.has('mobility_champ') ? 1 : 0);
         if (progress >= 1) unlocked = true;
         break;
       case 'tech_neck_slayer':

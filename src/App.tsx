@@ -10,13 +10,23 @@ import { KnowledgeBaseSection } from './components/KnowledgeBaseSection';
 import { AchievementsModal } from './components/AchievementsModal';
 import { ExerciseModal } from './components/ExerciseModal';
 import { ActiveSessionModal } from './components/ActiveSessionModal';
+import { MedicalOnboardingModal } from './components/MedicalOnboardingModal';
+import { EmergencyRedFlagsModal } from './components/EmergencyRedFlagsModal';
+import { ClinicalFeedbackModal } from './components/ClinicalFeedbackModal';
 import { PrivacyStorageService, AppState } from './services/privacyStorage';
 import { evaluateAchievements, INITIAL_ACHIEVEMENTS, Achievement } from './services/achievements';
 import { EXERCISES } from './data/exercises';
-import { Exercise, TrainingDay, PainReport } from './types';
-import { ShieldCheck, Trophy, Sparkles } from 'lucide-react';
+import { Exercise, TrainingDay, PainReport, PatientMood } from './types';
+import { ShieldCheck, Trophy, Sparkles, Bell, Clock, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { OfflineIndicator } from './components/OfflineIndicator';
+import { ProfileView } from './components/ProfileView';
+import { SmartMicroBreakModal } from './components/SmartMicroBreakModal';
+import { useSmartMicroBreak } from './hooks/useSmartMicroBreak';
+import { ErgonomicWorkstationAuditor } from './components/ErgonomicWorkstationAuditor';
+import { DiaphragmaticBreathingModal } from './components/DiaphragmaticBreathingModal';
+import { BiopsychosocialDiaryModal } from './components/BiopsychosocialDiaryModal';
+import { BiopsychosocialLog } from './types';
 
 export default function App() {
   const [appState, setAppState] = useState<AppState>(() => PrivacyStorageService.loadState());
@@ -108,6 +118,59 @@ export default function App() {
   const [isAchievementsOpen, setIsAchievementsOpen] = useState<boolean>(false);
   const [newlyUnlockedToast, setNewlyUnlockedToast] = useState<Achievement | null>(null);
 
+  // Medical Onboarding & Safety Modals
+  const [isConsentModalOpen, setIsConsentModalOpen] = useState<boolean>(() => {
+    return !appState.profile.onboardingCompleted || !appState.profile.hasAcceptedConsent;
+  });
+  const [isRedFlagsModalOpen, setIsRedFlagsModalOpen] = useState<boolean>(false);
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState<boolean>(false);
+  const [isBreathingModalOpen, setIsBreathingModalOpen] = useState<boolean>(false);
+  const [isBpsModalOpen, setIsBpsModalOpen] = useState<boolean>(false);
+
+  const handleSaveBpsLog = (log: BiopsychosocialLog) => {
+    const currentLogs = appState.profile.bpsLogs || [];
+    const updatedProfile = {
+      ...appState.profile,
+      bpsLogs: [...currentLogs, log]
+    };
+    handleUpdateAppState({
+      ...appState,
+      profile: updatedProfile
+    });
+    setIsBpsModalOpen(false);
+  };
+
+  const handleCompleteBreathing = (stats: { cyclesCompleted: number; durationSeconds: number }) => {
+    const currentCount = appState.profile.completedMicroBreaksCount || 0;
+    const updatedProfile = {
+      ...appState.profile,
+      completedMicroBreaksCount: currentCount + 1
+    };
+    handleUpdateAppState({
+      ...appState,
+      profile: updatedProfile
+    });
+  };
+
+  const handleAcceptConsent = (data: {
+    userName: string;
+    primaryGoal: 'tech_neck' | 'discopathy' | 'tension_headache' | 'posture_prevention' | 'shoulder_scapula';
+  }) => {
+    const updatedProfile = {
+      ...appState.profile,
+      name: data.userName,
+      primaryGoal: data.primaryGoal,
+      hasAcceptedConsent: true,
+      consentAcceptedAt: new Date().toISOString(),
+      onboardingCompleted: true
+    };
+    handleUpdateAppState({
+      ...appState,
+      profile: updatedProfile
+    });
+    setIsConsentModalOpen(false);
+  };
+
   // Knowledge base read tracking (local-first)
   const [readArticles, setReadArticles] = useState<string[]>(() => {
     try {
@@ -137,6 +200,22 @@ export default function App() {
     PrivacyStorageService.saveState(newState);
   };
 
+  // Smart Micro-Break & Browser / PWA Notification System (30-second chin-tuck reminder)
+  const {
+    isMicroBreakModalOpen,
+    openMicroBreakModal,
+    closeMicroBreakModal,
+    completeMicroBreak,
+    notificationPermission,
+    requestPermission,
+    triggerManualMicroBreak
+  } = useSmartMicroBreak({
+    appState,
+    onUpdateState: handleUpdateAppState,
+    inactivityThresholdSeconds: 180, // 3 minutes of continuous app activity without training
+    cooldownSeconds: 300 // 5 minutes cooldown between automated prompts
+  });
+
   // Launch single exercise or custom session
   const handleStartSession = (exercises: Exercise[], day?: TrainingDay) => {
     setActiveSessionExercises(exercises);
@@ -150,8 +229,13 @@ export default function App() {
     durationMinutes: number;
     completedCount: number;
     usedBreathingGuide: boolean;
+    difficultyLevel?: number;
+    stressLevel?: number;
+    mood?: PatientMood;
+    notes?: string;
   }) => {
     const todayStr = new Date().toISOString();
+    const todayDateOnly = todayStr.split('T')[0];
     let updatedDays = [...appState.activePlan.days];
 
     if (activeSessionDay) {
@@ -171,18 +255,50 @@ export default function App() {
 
     const newCompletedCount = appState.profile.totalCompletedSessions + 1;
     const newStreak = appState.profile.streakDays + 1;
+    const currentDates = appState.profile.completedSessionDates || [];
+    const updatedDates = currentDates.includes(todayDateOnly) 
+      ? currentDates 
+      : [...currentDates, todayDateOnly].sort();
+
+    // Record session into painHistory with psychosomatic data
+    const sessionReport: PainReport = {
+      id: `session-vas-${Date.now()}`,
+      date: todayStr,
+      vasScore: stats.preVas,
+      region: 'neck',
+      character: stats.preVas <= 3 ? 'dull' : stats.preVas <= 6 ? 'stiff' : 'sharp',
+      triggers: ['Praca przy biurku', 'Trening karku'],
+      associatedSymptoms: [],
+      reliefPositions: ['Retrakcja szyi', 'Pozycja Brüggera'],
+      stressLevel: stats.stressLevel ?? 4,
+      mood: stats.mood ?? 'neutral',
+      psychosomaticNotes: stats.notes,
+      aiAnalysis: {
+        riskLevel: stats.preVas <= 3 ? 'low' : stats.preVas <= 6 ? 'moderate' : 'high_consult_doctor',
+        urgency: 'routine',
+        primarySuspicion: `Sesja ćwiczeń (trudność: ${stats.difficultyLevel || 3}/5). Wynik: ${stats.preVas} → ${stats.postVas} VAS.`,
+        redFlagsDetected: [],
+        explanation: `Ćwiczenia zredukowały ból z ${stats.preVas} do ${stats.postVas} pkt VAS. Nastrój przed: ${stats.mood || 'neutralny'}, poziom stresu: ${stats.stressLevel ?? 4}/10.`,
+        recommendedExercises: ['chin-tuck', 'brugger-relief'],
+        contraindicatedExercises: [],
+        immediateReliefAdvice: ['Nawodnienie', 'Płynny, spokojny oddech przeponowy'],
+        doctorQuestions: []
+      }
+    };
 
     const interimState: AppState = {
       ...appState,
+      painHistory: [sessionReport, ...appState.painHistory],
       activePlan: {
         ...appState.activePlan,
         days: updatedDays
       },
       profile: {
         ...appState.profile,
+        completedSessionDates: updatedDates,
         totalCompletedSessions: newCompletedCount,
         streakDays: newStreak,
-        lastActiveDate: todayStr.split('T')[0]
+        lastActiveDate: todayDateOnly
       }
     };
 
@@ -286,13 +402,60 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        {/* Smart Micro-Break Quick Status Bar */}
+        <div className="mb-6 p-3 sm:p-4 rounded-2xl bg-teal-500/10 border border-teal-500/20 dark:border-teal-500/30 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-teal-600 text-white flex items-center justify-center shrink-0">
+              <Zap className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <span>30-sekundowa mikro-przerwa (Retrakcja szyi)</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-teal-600/10 text-teal-700 dark:text-teal-300 font-bold">
+                  Aktywna ochrona C5-C7
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-600 dark:text-slate-400">
+                Wykrywanie dłuższej pracy bez ruchu aktywuje inteligentne powiadomienie PWA/przeglądarki.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {notificationPermission === 'default' && (
+              <button
+                type="button"
+                onClick={requestPermission}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-teal-300 dark:border-teal-700 text-teal-700 dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-950 text-xs font-semibold transition-all cursor-pointer"
+              >
+                <Bell className="w-3.5 h-3.5" />
+                <span>Włącz powiadomienia PWA</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={triggerManualMicroBreak}
+              className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs shadow-xs transition-all cursor-pointer"
+            >
+              <Clock className="w-3.5 h-3.5" />
+              <span>Zrób 30s Przerwę Teraz</span>
+            </button>
+          </div>
+        </div>
+
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
+            layout="position"
+            initial={{ opacity: 0, y: 14, scale: 0.992 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -12, scale: 0.992 }}
+            transition={{ 
+              duration: 0.25, 
+              ease: [0.22, 1, 0.36, 1],
+              layout: { duration: 0.25, ease: [0.22, 1, 0.36, 1] }
+            }}
           >
             {activeTab === 'dashboard' && (
               <DashboardView
@@ -301,6 +464,12 @@ export default function App() {
                 onStartActiveSession={(exercises) => handleStartSession(exercises)}
                 onOpenExerciseDetails={setSelectedExercise}
                 onToggleMedication={handleToggleMedication}
+                onOpenRedFlags={() => setIsRedFlagsModalOpen(true)}
+                onOpenConsentModal={() => setIsConsentModalOpen(true)}
+                onOpenFeedbackModal={() => setIsFeedbackModalOpen(true)}
+                onOpenBreathingModal={() => setIsBreathingModalOpen(true)}
+                onOpenBpsModal={() => setIsBpsModalOpen(true)}
+                onOpenAchievements={() => setIsAchievementsOpen(true)}
                 onSavePostureMeasurement={(angle, diagnosis) => {
                   const newReport: PainReport = {
                     id: `posture-${Date.now()}`,
@@ -356,6 +525,7 @@ export default function App() {
                 onMarkAsRead={handleMarkArticleAsRead}
                 allExercises={EXERCISES}
                 onSelectExercise={setSelectedExercise}
+                onNavigateTab={(tab) => setActiveTab(tab)}
               />
             )}
 
@@ -372,6 +542,35 @@ export default function App() {
                 profile={appState.profile}
                 medications={appState.medications}
                 reminders={appState.reminders}
+                onToggleCompletedDate={(dateStr) => {
+                  const currentDates = appState.profile.completedSessionDates || [];
+                  const exists = currentDates.includes(dateStr);
+                  const updatedDates = exists
+                    ? currentDates.filter(d => d !== dateStr)
+                    : [...currentDates, dateStr].sort();
+                  
+                  // Recalculate streak if needed
+                  const updatedProfile = {
+                    ...appState.profile,
+                    completedSessionDates: updatedDates,
+                    streakDays: Math.max(appState.profile.streakDays, updatedDates.length)
+                  };
+                  handleUpdateAppState({ ...appState, profile: updatedProfile });
+                }}
+                onSaveMobilityTest={(testData) => {
+                  const newTests = [
+                    {
+                      date: new Date().toISOString().split('T')[0],
+                      ...testData
+                    },
+                    ...(appState.profile.mobilityTests || [])
+                  ];
+                  const updatedProfile = {
+                    ...appState.profile,
+                    mobilityTests: newTests
+                  };
+                  handleUpdateAppState({ ...appState, profile: updatedProfile });
+                }}
               />
             )}
 
@@ -392,10 +591,37 @@ export default function App() {
               />
             )}
 
+            {activeTab === 'ergonomics' && (
+              <ErgonomicWorkstationAuditor
+                initialAudit={appState.profile.ergonomicAudit}
+                userHeight={appState.profile.heightCm || 175}
+                onSaveAudit={(audit) => {
+                  const updatedProfile = {
+                    ...appState.profile,
+                    ergonomicAudit: audit,
+                    heightCm: audit.userHeightCm
+                  };
+                  handleUpdateAppState({ ...appState, profile: updatedProfile });
+                }}
+                onNavigateToKnowledge={() => setActiveTab('knowledge')}
+              />
+            )}
+
             {activeTab === 'wearables' && (
               <WearablesMedsView
                 appState={appState}
                 onUpdateState={handleUpdateAppState}
+              />
+            )}
+
+            {activeTab === 'profile' && (
+              <ProfileView
+                appState={appState}
+                onUpdateState={handleUpdateAppState}
+                onNavigateToTab={setActiveTab}
+                onOpenEmergencyModal={() => setIsRedFlagsModalOpen(true)}
+                onOpenBreathingModal={() => setIsBreathingModalOpen(true)}
+                onOpenBpsModal={() => setIsBpsModalOpen(true)}
               />
             )}
           </motion.div>
@@ -416,15 +642,55 @@ export default function App() {
           </div>
 
           <div className="flex flex-col sm:flex-row items-center gap-3 text-[11px]">
-            <span className="px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 font-semibold">
+            <button
+              type="button"
+              onClick={() => setIsConsentModalOpen(true)}
+              className="text-teal-600 dark:text-teal-400 hover:underline font-semibold cursor-pointer"
+            >
+              Świadoma Zgoda & RODO
+            </button>
+            <span className="hidden sm:inline text-slate-300 dark:text-slate-700">•</span>
+            <button
+              type="button"
+              onClick={() => setIsRedFlagsModalOpen(true)}
+              className="text-rose-600 dark:text-rose-400 hover:underline font-semibold cursor-pointer"
+            >
+              Czerwone Flagi (SOR 112)
+            </button>
+            <span className="hidden sm:inline text-slate-300 dark:text-slate-700">•</span>
+            <button
+              type="button"
+              onClick={() => setIsFeedbackModalOpen(true)}
+              className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:underline cursor-pointer"
+            >
+              Zgłoś uwagę / Błąd
+            </button>
+            <span className="px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 font-semibold ml-1">
               🔒 100% On-Device Storage
-            </span>
-            <span className="text-slate-600 dark:text-slate-400">
-              Zero zewnętrznych API • 0 zł
             </span>
           </div>
         </div>
       </footer>
+
+      {/* Medical Onboarding & Patient Consent Modal */}
+      <MedicalOnboardingModal
+        isOpen={isConsentModalOpen}
+        isAlreadyAccepted={!!appState.profile.hasAcceptedConsent}
+        onAcceptConsent={handleAcceptConsent}
+        onClose={() => setIsConsentModalOpen(false)}
+      />
+
+      {/* Emergency Red Flags Modal */}
+      <EmergencyRedFlagsModal
+        isOpen={isRedFlagsModalOpen}
+        onClose={() => setIsRedFlagsModalOpen(false)}
+      />
+
+      {/* Clinical Feedback & Error Reporting Modal */}
+      <ClinicalFeedbackModal
+        isOpen={isFeedbackModalOpen}
+        onClose={() => setIsFeedbackModalOpen(false)}
+      />
 
       {/* Exercise Details & Biomechanical Animation Modal */}
       {selectedExercise && (
@@ -455,8 +721,43 @@ export default function App() {
           onClose={() => setIsAchievementsOpen(false)}
           achievements={appState.achievements || INITIAL_ACHIEVEMENTS}
           streakDays={appState.profile.streakDays}
+          totalCompletedSessions={appState.profile.totalCompletedSessions}
+          completedMicroBreaksCount={appState.profile.completedMicroBreaksCount || 0}
+          onNavigateToTab={(tab) => {
+            setIsAchievementsOpen(false);
+            setActiveTab(tab as any);
+          }}
         />
       )}
+
+      {/* Smart Micro-Break 30s Interactive Modal */}
+      <SmartMicroBreakModal
+        isOpen={isMicroBreakModalOpen}
+        onClose={closeMicroBreakModal}
+        onComplete={completeMicroBreak}
+      />
+
+      {/* Diaphragmatic Breathing & Vagus Nerve Training Modal (Faza 3) */}
+      {isBreathingModalOpen && (
+        <DiaphragmaticBreathingModal
+          onClose={() => setIsBreathingModalOpen(false)}
+          onCompleteSession={handleCompleteBreathing}
+        />
+      )}
+
+      {/* Biopsychosocial Diary Modal (Faza 3) */}
+      {isBpsModalOpen && (
+        <BiopsychosocialDiaryModal
+          onClose={() => setIsBpsModalOpen(false)}
+          onSaveLog={handleSaveBpsLog}
+          currentVasScore={
+            appState.painHistory.length > 0 
+              ? appState.painHistory[0].vasScore 
+              : 3
+          }
+        />
+      )}
+
       {/* Offline Status Toast Indicator */}
       <OfflineIndicator />
     </div>

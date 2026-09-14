@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { 
   Watch, Heart, Bell, Plus, CheckCircle2, 
-  Smartphone, Bluetooth, Activity, ShieldCheck, Clock, Trash2, Send, BatteryCharging 
+  Smartphone, Bluetooth, Activity, ShieldCheck, Clock, Trash2, Send, BatteryCharging, Calendar 
 } from 'lucide-react';
 import { AppState, PrivacyStorageService } from '../services/privacyStorage';
 import { WearableSyncService } from '../services/wearableSync';
 import { ReminderService } from '../services/reminders';
 import { Medication } from '../types';
+import { RemindersScheduleView } from './RemindersScheduleView';
 
 interface Props {
   appState: AppState;
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export const WearablesMedsView: React.FC<Props> = ({ appState, onUpdateState }) => {
+  const [subView, setSubView] = useState<'schedule' | 'devices'>('schedule');
   const [connectingBle, setConnectingBle] = useState<boolean>(false);
   const [bleStatusMsg, setBleStatusMsg] = useState<string>('');
   const [notificationPermission, setNotificationPermission] = useState<string>(
@@ -191,12 +193,53 @@ export const WearablesMedsView: React.FC<Props> = ({ appState, onUpdateState }) 
           Synchronizacja Zegarków, Przypomnienia & Leki
         </h1>
         <p className="text-sm text-slate-600 dark:text-slate-300 mt-1 max-w-2xl">
-          Połącz zegarek przez Web Bluetooth, monitoruj tętno podczas rehabilitacji, planuj codzienne leki i otrzymuj spersonalizowane powiadomienia.
+          Połącz zegarek przez Web Bluetooth, monitoruj tętno podczas rehabilitacji, precyzyjnie planuj godziny ćwiczeń i dawek leków dopasowane do Twojego stylu życia.
         </p>
       </div>
 
-      {/* Grid: Left Smartwatches (6 cols), Right Notifications & Meds (6 cols) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      {/* Sub-view Navigation Bar: Nowy widok precyzyjnego harmonogramu vs Urządzenia */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-2 rounded-2xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <button
+            id="subview-schedule-btn"
+            type="button"
+            onClick={() => setSubView('schedule')}
+            className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+              subView === 'schedule'
+                ? 'bg-teal-600 text-white shadow-md'
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-700/60'
+            }`}
+          >
+            <Clock className="w-4 h-4" />
+            <span>Harmonogram & Styl Życia (Nowy widok)</span>
+          </button>
+
+          <button
+            id="subview-devices-btn"
+            type="button"
+            onClick={() => setSubView('devices')}
+            className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+              subView === 'devices'
+                ? 'bg-teal-600 text-white shadow-md'
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-700/60'
+            }`}
+          >
+            <Watch className="w-4 h-4" />
+            <span>Smartwatch & Sensory BLE</span>
+          </button>
+        </div>
+
+        <div className="text-xs text-slate-500 dark:text-slate-400 px-3 hidden md:block font-medium">
+          {subView === 'schedule' ? 'Precyzyjne godziny leków, ćwiczeń i przerw' : 'Tętno live, kroki & eksport treningów'}
+        </div>
+      </div>
+
+      {/* Render selected view */}
+      {subView === 'schedule' ? (
+        <RemindersScheduleView appState={appState} onUpdateState={onUpdateState} />
+      ) : (
+        /* Grid: Left Smartwatches (6 cols), Right Notifications & Meds (6 cols) */
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Smartwatch / Wearable Hub */}
         <div className="lg:col-span-6 space-y-6">
           <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-3xl p-6 shadow-xs space-y-6">
@@ -441,6 +484,7 @@ export const WearablesMedsView: React.FC<Props> = ({ appState, onUpdateState }) 
           </div>
         </div>
       </div>
+      )}
 
       {/* Add Medication Modal */}
       {showAddMedModal && (

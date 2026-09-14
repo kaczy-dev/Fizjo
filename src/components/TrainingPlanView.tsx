@@ -1,11 +1,16 @@
 import React, { useState } from 'react';
 import { 
   Calendar, CheckCircle2, Clock, Play, RotateCcw, 
-  Sparkles, Target, Settings, ChevronRight, Activity, Award, Pill, Video, ExternalLink, ShieldCheck, Brain, AlertCircle 
+  Sparkles, Target, Settings, ChevronRight, Activity, Award, Pill, Video, ExternalLink, ShieldCheck, Brain, AlertCircle, Compass, Loader2 
 } from 'lucide-react';
 import { TrainingPlan, Exercise, TrainingDay, PainReport, UserHealthProfile, ReminderConfig, Medication } from '../types';
 import { EXERCISES } from '../data/exercises';
 import { generateAIPersonalizedPlan } from '../services/trainingPlan';
+import { RehabCalendarTracker } from './RehabCalendarTracker';
+import { CervicalMobilityTestModal } from './CervicalMobilityTestModal';
+import { calculatePlanIntensityWithFreeAI, applyIntensityToPlan, PlanIntensityAiResult } from '../services/freePlanIntensityAi';
+import { PlanIntensityAiModal } from './PlanIntensityAiModal';
+import { generatePhysiotherapistReportPdf } from '../services/pdfExport';
 
 interface Props {
   plan: TrainingPlan;
@@ -16,6 +21,13 @@ interface Props {
   profile?: UserHealthProfile;
   medications?: Medication[];
   reminders?: ReminderConfig;
+  onToggleCompletedDate?: (dateStr: string) => void;
+  onSaveMobilityTest?: (testData: {
+    neckRotationLeftDeg: number;
+    neckRotationRightDeg: number;
+    neckFlexionCm: number;
+    neckExtensionDeg: number;
+  }) => void;
 }
 
 export const TrainingPlanView: React.FC<Props> = ({
@@ -26,10 +38,18 @@ export const TrainingPlanView: React.FC<Props> = ({
   painHistory = [],
   profile,
   medications = [],
-  reminders
+  reminders,
+  onToggleCompletedDate,
+  onSaveMobilityTest
 }) => {
+  const [planViewMode, setPlanViewMode] = useState<'exercises' | 'calendar'>('exercises');
   const [selectedDayIndex, setSelectedDayIndex] = useState<number>(0);
   const [showConfigModal, setShowConfigModal] = useState<boolean>(false);
+  const [showMobilityModal, setShowMobilityModal] = useState<boolean>(false);
+  const [isGeneratingAI, setIsGeneratingAI] = useState<boolean>(false);
+  const [aiNotice, setAiNotice] = useState<string | null>(null);
+  const [showAiIntensityModal, setShowAiIntensityModal] = useState<boolean>(false);
+  const [aiIntensityResult, setAiIntensityResult] = useState<PlanIntensityAiResult | null>(null);
 
   // Questionnaire local state for regenerating plan
   const [problem, setProblem] = useState<string>(plan.primaryProblem || 'tech_neck');
@@ -66,7 +86,7 @@ export const TrainingPlanView: React.FC<Props> = ({
     motivationalTone: 'clinical'
   };
 
-  const handleRegeneratePlan = () => {
+  const handleRegeneratePlanLocal = () => {
     const newPlan = generateAIPersonalizedPlan({
       primaryProblem: problem,
       workType,
@@ -79,6 +99,108 @@ export const TrainingPlanView: React.FC<Props> = ({
     });
     onUpdatePlan(newPlan);
     setShowConfigModal(false);
+  };
+
+  // Darmowa AI on-device (bez płatnych API) - przeliczenie intensywności na bazie 3 ostatnich raportów bólu
+  const handleOpenIntensityCalculator = () => {
+    const res = calculatePlanIntensityWithFreeAI(painHistory, profile);
+    setAiIntensityResult(res);
+    setShowAiIntensityModal(true);
+  };
+
+  const handleApplyAiIntensity = () => {
+    if (!aiIntensityResult) return;
+    const updated = applyIntensityToPlan(plan, aiIntensityResult);
+    onUpdatePlan(updated);
+    setShowAiIntensityModal(false);
+    setAiNotice(`Darmowa AI zaadaptowała intensywność planu: ${aiIntensityResult.levelNamePl}`);
+    setTimeout(() => setAiNotice(null), 5000);
+  };
+
+  const handleDownloadPhysioPdfFromPlan = () => {
+    generatePhysiotherapistReportPdf({
+      activePlan: plan,
+      painHistory,
+      profile: defaultProfile,
+      medications,
+      reminders: defaultReminders,
+      wearable: {
+        connected: false,
+        source: 'simulated',
+        todaySteps: 6500,
+        activeMinutes: 45
+      },
+      achievements: []
+    });
+  };
+
+  // Free AI-driven deep clinical personalization (0 zł, no paid API keys required)
+  const handleGenerateWithFreeAI = async () => {
+    setIsGeneratingAI(true);
+    setAiNotice(null);
+
+    try {
+      const payload = {
+        primaryProblem: problem,
+        workType,
+        dailyMinutes,
+        baselineVas: painHistory.length > 0 ? painHistory[0].vasScore : 4,
+        painHistory: painHistory.slice(0, 5),
+        diagnoses: defaultProfile.diagnoses,
+        notes: defaultProfile.notes
+      };
+
+      const res = await fetch('/api/generate-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) throw new Error('Błąd serwera planu');
+
+      const data = await res.json();
+
+      if (data.useClientFallback || !Array.isArray(data.days)) {
+        // Graceful fallback to offline deterministic engine
+        setAiNotice('Zastosowano kliniczny algorytm reguł biomechanicznych (100% darmowy).');
+        handleRegeneratePlanLocal();
+        return;
+      }
+
+      // Map Free AI response into app's TrainingPlan interface
+      const generatedPlan: TrainingPlan = {
+        id: data.id || `plan-free-ai-${Date.now()}`,
+        title: data.title || 'Spersonalizowany Protokół Kinezjoterapii (Darmowa AI)',
+        description: data.description || 'Plan skomponowany na podstawie wywiadu bólowego i ergonomii.',
+        goal: data.goal || 'Dekompresja segmentów szyjnych i zniesienie bólu.',
+        primaryProblem: problem,
+        dailyMinutes,
+        workType,
+        startDate: new Date().toISOString().split('T')[0],
+        adaptedLevel: data.adaptedLevel || 'standard',
+        aiRationale: data.aiRationale,
+        contraindicatedExerciseIds: data.contraindicatedExerciseIds || [],
+        recommendedBreakIntervalMinutes: data.recommendedBreakIntervalMinutes || 45,
+        days: data.days.map((d: any, idx: number) => ({
+          dayIndex: idx,
+          dayName: d.dayName || ['Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela'][idx],
+          focusArea: d.focusArea || 'Dekompresja i mobilność',
+          exerciseIds: Array.isArray(d.exerciseIds) && d.exerciseIds.length > 0 ? d.exerciseIds : ['chin-tuck', 'brugger-relief'],
+          estimatedMinutes: d.estimatedMinutes || dailyMinutes,
+          completed: false
+        }))
+      };
+
+      onUpdatePlan(generatedPlan);
+      setShowConfigModal(false);
+      setAiNotice('Darmowa AI pomyślnie ułożyła spersonalizowany plan rehabilitacji.');
+      setTimeout(() => setAiNotice(null), 5000);
+    } catch (err) {
+      console.warn('Fallback do lokalnego algorytmu:', err);
+      handleRegeneratePlanLocal();
+    } finally {
+      setIsGeneratingAI(false);
+    }
   };
 
   return (
@@ -99,12 +221,33 @@ export const TrainingPlanView: React.FC<Props> = ({
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              id="calculate-free-ai-intensity-btn"
+              type="button"
+              onClick={handleOpenIntensityCalculator}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white text-xs font-bold shadow-md shadow-teal-600/20 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
+              title="Darmowa AI on-device przelicza intensywność planu na podstawie 3 ostatnich raportów bólu"
+            >
+              <Sparkles className="w-4 h-4 text-emerald-200 animate-pulse" />
+              <span>Przelicz Intensywność AI (3 raporty)</span>
+            </button>
+
+            <button
+              id="open-mobility-test-btn"
+              type="button"
+              onClick={() => setShowMobilityModal(true)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-teal-200 dark:border-teal-800 bg-teal-50 dark:bg-teal-950/60 hover:bg-teal-100 dark:hover:bg-teal-900/60 text-xs font-bold text-teal-800 dark:text-teal-300 transition-all shadow-xs cursor-pointer"
+            >
+              <Compass className="w-4 h-4 text-teal-600" />
+              <span>Test Ruchomości (CROM)</span>
+            </button>
+
             <button
               id="reconfigure-plan-btn"
               type="button"
               onClick={() => setShowConfigModal(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 transition-colors"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
             >
               <Settings className="w-4 h-4" />
               <span>Dostosuj wywiad</span>
@@ -150,10 +293,10 @@ export const TrainingPlanView: React.FC<Props> = ({
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold uppercase tracking-wider text-teal-900 dark:text-teal-200">
-                  Uzasadnienie personalizacji AI (Analiza deterministyczna on-device)
+                  Uzasadnienie personalizacji AI (Darmowy Silnik Kinezjologii)
                 </span>
-                <span className="text-[10px] bg-teal-200/60 dark:bg-teal-800 text-teal-800 dark:text-teal-200 font-bold px-2 py-0.5 rounded-full">
-                  100% Prywatne
+                <span className="text-[10px] bg-emerald-200/60 dark:bg-emerald-800 text-emerald-800 dark:text-emerald-200 font-bold px-2 py-0.5 rounded-full">
+                  100% Darmowa & Prywatna (0 zł)
                 </span>
               </div>
               <p className="text-xs sm:text-sm text-teal-950 dark:text-teal-200 leading-relaxed">
@@ -214,8 +357,54 @@ export const TrainingPlanView: React.FC<Props> = ({
         </div>
       )}
 
-      {/* 7-Day Interactive Horizontal Timeline */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2.5">
+      {/* Plan Mode Selector (Harmonogram Cyklu vs Kalendarz Sukcesu) */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-2 rounded-2xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <button
+            id="plan-view-exercises-btn"
+            type="button"
+            onClick={() => setPlanViewMode('exercises')}
+            className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+              planViewMode === 'exercises'
+                ? 'bg-teal-600 text-white shadow-md'
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-700/60'
+            }`}
+          >
+            <Activity className="w-4 h-4" />
+            <span>Harmonogram Cyklu & Ćwiczenia</span>
+          </button>
+
+          <button
+            id="plan-view-calendar-btn"
+            type="button"
+            onClick={() => setPlanViewMode('calendar')}
+            className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+              planViewMode === 'calendar'
+                ? 'bg-teal-600 text-white shadow-md'
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-700/60'
+            }`}
+          >
+            <Calendar className="w-4 h-4" />
+            <span>Kalendarz Sukcesu (Systematyczność)</span>
+          </button>
+        </div>
+
+        <div className="text-xs text-slate-500 dark:text-slate-400 px-3 hidden md:block font-medium">
+          {planViewMode === 'exercises' ? 'Kolejne dni rehabilitacji i ćwiczenia wideo' : 'Zaznaczone dni ukończonych sesji i passa (streak)'}
+        </div>
+      </div>
+
+      {planViewMode === 'calendar' ? (
+        <RehabCalendarTracker
+          plan={plan}
+          profile={profile}
+          completedDates={profile?.completedSessionDates}
+          onToggleDate={onToggleCompletedDate}
+        />
+      ) : (
+        <>
+          {/* 7-Day Interactive Horizontal Timeline */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2.5">
         {plan.days.map((day, idx) => {
           const isSelected = selectedDayIndex === idx;
           return (
@@ -341,6 +530,8 @@ export const TrainingPlanView: React.FC<Props> = ({
           </div>
         </div>
       </div>
+      </>
+      )}
 
       {/* Reconfiguration Questionnaire Modal */}
       {showConfigModal && (
@@ -422,7 +613,13 @@ export const TrainingPlanView: React.FC<Props> = ({
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+            {aiNotice && (
+              <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200 text-xs">
+                {aiNotice}
+              </div>
+            )}
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
               <button
                 type="button"
                 onClick={() => setShowConfigModal(false)}
@@ -430,17 +627,64 @@ export const TrainingPlanView: React.FC<Props> = ({
               >
                 Anuluj
               </button>
-              <button
-                id="apply-new-plan-btn"
-                type="button"
-                onClick={handleRegeneratePlan}
-                className="px-5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold shadow-md"
-              >
-                Zastosuj i wygeneruj nowy plan
-              </button>
+
+              <div className="flex flex-col sm:flex-row gap-2">
+                <button
+                  id="apply-local-plan-btn"
+                  type="button"
+                  disabled={isGeneratingAI}
+                  onClick={handleRegeneratePlanLocal}
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all cursor-pointer"
+                >
+                  Szybki Algorytm Offline
+                </button>
+
+                <button
+                  id="apply-free-ai-plan-btn"
+                  type="button"
+                  disabled={isGeneratingAI}
+                  onClick={handleGenerateWithFreeAI}
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white text-xs font-black shadow-md flex items-center justify-center gap-2 cursor-pointer transition-transform active:scale-95 disabled:opacity-60"
+                >
+                  {isGeneratingAI ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Darmowa AI analizuje wywiad...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      <span>Generuj z Darmowej AI (0 zł)</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Cervical Mobility Range of Motion (CROM) Modal */}
+      {showMobilityModal && (
+        <CervicalMobilityTestModal
+          onClose={() => setShowMobilityModal(false)}
+          onSaveTest={(testData) => {
+            if (onSaveMobilityTest) {
+              onSaveMobilityTest(testData);
+            }
+            setShowMobilityModal(false);
+          }}
+        />
+      )}
+
+      {/* Darmowa AI - Modal Adaptacji Intensywności na bazie 3 raportów bólu */}
+      {showAiIntensityModal && aiIntensityResult && (
+        <PlanIntensityAiModal
+          aiResult={aiIntensityResult}
+          onApplyIntensity={handleApplyAiIntensity}
+          onClose={() => setShowAiIntensityModal(false)}
+          onDownloadPhysioPdf={handleDownloadPhysioPdfFromPlan}
+        />
       )}
     </div>
   );
