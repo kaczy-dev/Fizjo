@@ -121,9 +121,9 @@ export function generatePhysiotherapistReportPdf(state: AppState): void {
       doc.text(`Czynniki wyzwalające: ${triggerStr}`, 20, y);
       y += 3.8;
 
-      if (rep.stressLevel !== undefined || rep.mood || rep.psychosomaticNotes) {
+      if (rep.stressLevel !== undefined || rep.mood || rep.psychosomaticNotes || rep.sessionNotes) {
         const moodPl = rep.mood === 'calm' ? 'Spokojny' : rep.mood === 'tense' ? 'Napięty' : rep.mood === 'fatigued' ? 'Zmęczony' : (rep.mood || '-');
-        const psNote = rep.psychosomaticNotes ? ` ("${rep.psychosomaticNotes}")` : '';
+        const psNote = rep.sessionNotes ? ` (Uwagi do ćwiczeń: "${rep.sessionNotes}")` : rep.psychosomaticNotes ? ` ("${rep.psychosomaticNotes}")` : '';
         doc.text(`Czynniki psychosomatyczne: Stres: ${rep.stressLevel ?? '-'}/10, Nastrój: ${moodPl}${psNote}`, 20, y);
         y += 3.8;
       }
@@ -404,9 +404,9 @@ export function generateDoctorMedicalPdf(state: AppState): void {
       doc.setFont('helvetica', 'normal');
       doc.text(`  Ocena: ${rep.aiAnalysis.primarySuspicion}`, 22, y);
       y += 3.8;
-      if (rep.stressLevel !== undefined || rep.mood) {
+      if (rep.stressLevel !== undefined || rep.mood || rep.sessionNotes || rep.psychosomaticNotes) {
         const moodLabel = rep.mood === 'calm' ? 'Spokojny' : rep.mood === 'relaxed' ? 'Zrelaksowany' : rep.mood === 'tense' ? 'Spiety' : rep.mood === 'fatigued' ? 'Zmeczony' : rep.mood === 'exhausted' ? 'Wyczerpany' : (rep.mood || 'Neutralny');
-        const noteStr = rep.psychosomaticNotes ? ` - "${rep.psychosomaticNotes}"` : '';
+        const noteStr = rep.sessionNotes ? ` - Uwagi do ćwiczeń: "${rep.sessionNotes}"` : rep.psychosomaticNotes ? ` - "${rep.psychosomaticNotes}"` : '';
         doc.text(`  Czynniki psychosomatyczne: Stres: ${rep.stressLevel ?? '-'}/10, Nastrój: ${moodLabel}${noteStr}`, 22, y);
         y += 3.8;
       }

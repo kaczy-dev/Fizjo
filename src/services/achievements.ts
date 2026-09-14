@@ -178,6 +178,83 @@ export const ALL_ACHIEVEMENTS: Achievement[] = [
     unlocked: false,
     progress: 0,
     maxProgress: 10
+  },
+  {
+    id: 'sessions_3',
+    title: '3 Ukończone Sesje',
+    description: 'Ukończono 3 pełne sesje ćwiczeń – wstępna adaptacja tkanek miękkich karku.',
+    category: 'rehab',
+    tier: 'bronze',
+    icon: 'Award',
+    unlocked: false,
+    progress: 0,
+    maxProgress: 3
+  },
+  {
+    id: 'sessions_7',
+    title: 'Srebrna Systematyczność (7 sesji)',
+    description: 'Ukończono 7 sesji terapeutycznych – aktywacja głębokich stabilizatorów szyi.',
+    category: 'rehab',
+    tier: 'silver',
+    icon: 'Trophy',
+    unlocked: false,
+    progress: 0,
+    maxProgress: 7
+  },
+  {
+    id: 'streak_21',
+    title: '21 Dni Budowania Nawyków',
+    description: 'Trzy tygodnie nieprzerwanej rehabilitacji – utrwalenie neuroplastyczne.',
+    category: 'streak',
+    tier: 'gold',
+    icon: 'Flame',
+    unlocked: false,
+    progress: 0,
+    maxProgress: 21
+  },
+  {
+    id: 'sessions_20',
+    title: 'Złota Odporność C5-C7 (20 sesji)',
+    description: 'Ukończono 20 sesji terapeutycznych – solidna bariera przed przeciążeniami biurowymi.',
+    category: 'rehab',
+    tier: 'gold',
+    icon: 'Crown',
+    unlocked: false,
+    progress: 0,
+    maxProgress: 20
+  },
+  {
+    id: 'sessions_30',
+    title: 'Platynowa Stabilizacja Szyi (30 sesji)',
+    description: 'Ukończono 30 pełnych sesji rehabilitacji kręgosłupa szyjnego.',
+    category: 'rehab',
+    tier: 'platinum',
+    icon: 'Crown',
+    unlocked: false,
+    progress: 0,
+    maxProgress: 30
+  },
+  {
+    id: 'streak_45',
+    title: 'Platynowa Dyscyplina (45 Dni Serii)',
+    description: '45 dni żelaznej ciągłości rehabilitacji – mistrzowska rezyliencja układu ruchu.',
+    category: 'streak',
+    tier: 'platinum',
+    icon: 'Flame',
+    unlocked: false,
+    progress: 0,
+    maxProgress: 45
+  },
+  {
+    id: 'platinum_rehab_master',
+    title: 'Mistrz Rehabilitacji Kręgosłupa (50 Sesji)',
+    description: '50 ukończonych sesji – pełna biomechaniczna autonomia i długoterminowe zdrowie.',
+    category: 'rehab',
+    tier: 'platinum',
+    icon: 'Sparkles',
+    unlocked: false,
+    progress: 0,
+    maxProgress: 50
   }
 ];
 
@@ -315,6 +392,34 @@ export function evaluateAchievements(
       case 'tech_neck_slayer':
         progress = Math.min(10, completed);
         if (progress >= 10) unlocked = true;
+        break;
+      case 'sessions_3':
+        progress = Math.min(3, completed);
+        if (progress >= 3) unlocked = true;
+        break;
+      case 'sessions_7':
+        progress = Math.min(7, completed);
+        if (progress >= 7) unlocked = true;
+        break;
+      case 'streak_21':
+        progress = Math.min(21, streak);
+        if (progress >= 21) unlocked = true;
+        break;
+      case 'sessions_20':
+        progress = Math.min(20, completed);
+        if (progress >= 20) unlocked = true;
+        break;
+      case 'sessions_30':
+        progress = Math.min(30, completed);
+        if (progress >= 30) unlocked = true;
+        break;
+      case 'streak_45':
+        progress = Math.min(45, streak);
+        if (progress >= 45) unlocked = true;
+        break;
+      case 'platinum_rehab_master':
+        progress = Math.min(50, completed);
+        if (progress >= 50) unlocked = true;
         break;
       default:
         break;

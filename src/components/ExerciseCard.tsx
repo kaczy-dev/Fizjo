@@ -1,14 +1,27 @@
 import React from 'react';
 import { Play, Eye, ShieldAlert, Sparkles, Clock, CheckCircle2 } from 'lucide-react';
 import { Exercise } from '../types';
+import { ExerciseOfflineBadge } from './ExerciseOfflineBadge';
 
 interface Props {
   exercise: Exercise;
   onOpenDetails: (exercise: Exercise) => void;
   onQuickStart: (exercise: Exercise) => void;
+  isCached?: boolean;
+  isDownloading?: boolean;
+  sizeKb?: number;
+  onToggleCache?: (exercise: Exercise) => void;
 }
 
-export const ExerciseCard: React.FC<Props> = ({ exercise, onOpenDetails, onQuickStart }) => {
+export const ExerciseCard: React.FC<Props> = ({
+  exercise,
+  onOpenDetails,
+  onQuickStart,
+  isCached = false,
+  isDownloading = false,
+  sizeKb,
+  onToggleCache
+}) => {
   const getRegionBadge = () => {
     switch (exercise.region) {
       case 'cervical':
@@ -30,14 +43,24 @@ export const ExerciseCard: React.FC<Props> = ({ exercise, onOpenDetails, onQuick
       className="group bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-5 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between"
     >
       <div>
-        {/* Top Badges */}
-        <div className="flex items-center justify-between gap-2 mb-3">
+        {/* Top Badges: Region + Difficulty + Offline Availability */}
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
           <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${badge.bg}`}>
             {badge.label}
           </span>
-          <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
-            {exercise.difficulty}
-          </span>
+          <div className="flex items-center gap-1.5">
+            <ExerciseOfflineBadge
+              exercise={exercise}
+              isCached={isCached}
+              isDownloading={isDownloading}
+              sizeKb={sizeKb}
+              onToggleCache={onToggleCache ? () => onToggleCache(exercise) : undefined}
+              compact
+            />
+            <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+              {exercise.difficulty}
+            </span>
+          </div>
         </div>
 
         {/* Title */}

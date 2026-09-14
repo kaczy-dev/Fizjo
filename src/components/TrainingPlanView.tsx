@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   Calendar, CheckCircle2, Clock, Play, RotateCcw, 
-  Sparkles, Target, Settings, ChevronRight, Activity, Award, Pill, Video, ExternalLink, ShieldCheck, Brain, AlertCircle, Compass, Loader2 
+  Sparkles, Target, Settings, ChevronRight, Activity, Award, Pill, Video, ExternalLink, ShieldCheck, Brain, AlertCircle, Compass, Loader2, MessageSquare 
 } from 'lucide-react';
 import { TrainingPlan, Exercise, TrainingDay, PainReport, UserHealthProfile, ReminderConfig, Medication } from '../types';
 import { EXERCISES } from '../data/exercises';
@@ -11,6 +11,8 @@ import { CervicalMobilityTestModal } from './CervicalMobilityTestModal';
 import { calculatePlanIntensityWithFreeAI, applyIntensityToPlan, PlanIntensityAiResult } from '../services/freePlanIntensityAi';
 import { PlanIntensityAiModal } from './PlanIntensityAiModal';
 import { generatePhysiotherapistReportPdf } from '../services/pdfExport';
+import { useExerciseCache } from '../hooks/useExerciseCache';
+import { ExerciseOfflineBadge } from './ExerciseOfflineBadge';
 
 interface Props {
   plan: TrainingPlan;
@@ -50,6 +52,7 @@ export const TrainingPlanView: React.FC<Props> = ({
   const [aiNotice, setAiNotice] = useState<string | null>(null);
   const [showAiIntensityModal, setShowAiIntensityModal] = useState<boolean>(false);
   const [aiIntensityResult, setAiIntensityResult] = useState<PlanIntensityAiResult | null>(null);
+  const { isCached, isDownloading, cacheExercise, removeExercise, entries } = useExerciseCache();
 
   // Questionnaire local state for regenerating plan
   const [problem, setProblem] = useState<string>(plan.primaryProblem || 'tech_neck');
@@ -474,6 +477,43 @@ export const TrainingPlanView: React.FC<Props> = ({
           </button>
         </div>
 
+        {/* Kinesiological Adaptive Shield Informational Card */}
+        <div className="p-4 rounded-2xl bg-gradient-to-r from-teal-50 to-emerald-50 dark:from-teal-950/40 dark:to-emerald-950/40 border border-teal-200/80 dark:border-teal-800/60 flex items-start gap-3">
+          <div className="p-2 rounded-xl bg-teal-100 dark:bg-teal-900/70 text-teal-700 dark:text-teal-300 shrink-0">
+            <ShieldCheck className="w-5 h-5" />
+          </div>
+          <div className="text-xs space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-bold text-teal-950 dark:text-teal-200 uppercase tracking-wide">
+                Aktywna Tarcza Kinezjologiczna VAS
+              </span>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-[10px] font-bold border border-emerald-300 dark:border-emerald-800">
+                Automatyczna ochrona
+              </span>
+            </div>
+            <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
+              Podczas startu sesji podajesz swój ból (VAS). Przy zaostrzeniu (VAS 7-10) system wygasza ćwiczenia siłowe oraz rotacje, włączając bezpieczną autotrakcję osiową karku ręcznikiem i oddech dolnożebrowy.
+            </p>
+          </div>
+        </div>
+
+        {/* Zapisane uwagi z sesji (jeśli dzień został ukończony) */}
+        {selectedDay.completed && selectedDay.sessionNotes && (
+          <div className="p-4 rounded-2xl bg-teal-50/80 dark:bg-teal-950/40 border border-teal-200/80 dark:border-teal-800/60 flex items-start gap-3 text-xs">
+            <div className="p-2 rounded-xl bg-teal-100 dark:bg-teal-900/70 text-teal-700 dark:text-teal-300 shrink-0">
+              <MessageSquare className="w-4 h-4" />
+            </div>
+            <div className="space-y-1">
+              <span className="font-bold text-teal-900 dark:text-teal-200 text-xs uppercase tracking-wide block">
+                Twoje uwagi i odczucia z tej sesji:
+              </span>
+              <p className="text-slate-700 dark:text-slate-300 whitespace-pre-line leading-relaxed italic">
+                „{selectedDay.sessionNotes}”
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Exercises List for this Day */}
         <div className="space-y-3">
           <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
@@ -489,7 +529,23 @@ export const TrainingPlanView: React.FC<Props> = ({
                 <div>
                   <div className="flex items-center justify-between text-xs mb-1.5">
                     <span className="text-teal-600 dark:text-teal-400 font-bold">Krok {index + 1}</span>
-                    <span className="text-[11px] text-slate-600 dark:text-slate-400">{exercise.difficulty}</span>
+                    <div className="flex items-center gap-1.5">
+                      <ExerciseOfflineBadge
+                        exercise={exercise}
+                        isCached={isCached(exercise.id)}
+                        isDownloading={isDownloading(exercise.id)}
+                        sizeKb={entries[exercise.id]?.sizeKb}
+                        onToggleCache={(ex) => {
+                          if (isCached(ex.id)) {
+                            removeExercise(ex.id);
+                          } else {
+                            cacheExercise(ex);
+                          }
+                        }}
+                        compact
+                      />
+                      <span className="text-[11px] text-slate-600 dark:text-slate-400">{exercise.difficulty}</span>
+                    </div>
                   </div>
                   <h4 className="font-bold text-sm text-slate-900 dark:text-white">
                     {exercise.polishName}

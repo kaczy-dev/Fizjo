@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { X, Play, ShieldAlert, CheckCircle2, AlertTriangle, Wind, Target, Stethoscope, Video, ExternalLink } from 'lucide-react';
+import { X, Play, ShieldAlert, CheckCircle2, AlertTriangle, Wind, Target, Stethoscope, Video, ExternalLink, DownloadCloud, Loader2, HardDrive } from 'lucide-react';
 import { Exercise } from '../types';
 import { BiomechanicalAnimator } from './BiomechanicalAnimator';
+import { useExerciseCache } from '../hooks/useExerciseCache';
+import { ExerciseOfflineBadge } from './ExerciseOfflineBadge';
 
 interface Props {
   exercise: Exercise | null;
@@ -11,8 +13,21 @@ interface Props {
 
 export const ExerciseModal: React.FC<Props> = ({ exercise, onClose, onStartSession }) => {
   const [activeMediaTab, setActiveMediaTab] = useState<'animator' | 'video'>('animator');
+  const { isCached, isDownloading, cacheExercise, removeExercise, entries } = useExerciseCache();
 
   if (!exercise) return null;
+
+  const cached = isCached(exercise.id);
+  const downloading = isDownloading(exercise.id);
+  const sizeKb = entries[exercise.id]?.sizeKb;
+
+  const handleToggleCache = () => {
+    if (cached) {
+      removeExercise(exercise.id);
+    } else {
+      cacheExercise(exercise);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-xs overflow-y-auto">
@@ -23,10 +38,20 @@ export const ExerciseModal: React.FC<Props> = ({ exercise, onClose, onStartSessi
         {/* Modal Header */}
         <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/70 dark:bg-slate-900/80">
           <div>
-            <span className="text-xs font-semibold text-teal-600 dark:text-teal-400 uppercase tracking-wider">
-              Instruktaż Bezpiecznej Techniki Ruchu
-            </span>
-            <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-teal-600 dark:text-teal-400 uppercase tracking-wider">
+                Instruktaż Bezpiecznej Techniki Ruchu
+              </span>
+              <ExerciseOfflineBadge
+                exercise={exercise}
+                isCached={cached}
+                isDownloading={downloading}
+                sizeKb={sizeKb}
+                onToggleCache={handleToggleCache}
+                compact
+              />
+            </div>
+            <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white mt-0.5">
               {exercise.polishName}
             </h2>
           </div>
@@ -42,6 +67,60 @@ export const ExerciseModal: React.FC<Props> = ({ exercise, onClose, onStartSessi
 
         {/* Modal Body */}
         <div className="p-6 overflow-y-auto space-y-6 flex-1 text-slate-800 dark:text-slate-200">
+          {/* Offline PWA Status Banner */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 text-xs">
+            <div className="flex items-center gap-2.5">
+              <div className={`p-1.5 rounded-xl shrink-0 ${cached ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
+                <HardDrive className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                  <span>Dostępność Offline PWA:</span>
+                  {cached ? (
+                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+                      Zapisano w pamięci podręcznej ({sizeKb ? `${sizeKb} KB` : 'Pobrane'})
+                    </span>
+                  ) : (
+                    <span className="text-slate-500 dark:text-slate-400">
+                      Wymaga połączenia z siecią lub pobrania
+                    </span>
+                  )}
+                </div>
+                <p className="text-slate-500 dark:text-slate-400 text-[11px] mt-0.5">
+                  Animacja wektorowa oraz instrukcja krok po kroku działają w 100% offline po zapisaniu.
+                </p>
+              </div>
+            </div>
+
+            <button
+              id={`modal-cache-toggle-btn-${exercise.id}`}
+              type="button"
+              disabled={downloading}
+              onClick={handleToggleCache}
+              className={`shrink-0 px-3 py-1.5 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer ${
+                cached
+                  ? 'bg-slate-200/80 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-rose-100 hover:text-rose-700 dark:hover:bg-rose-950 dark:hover:text-rose-300'
+                  : 'bg-teal-600 hover:bg-teal-500 text-white shadow-xs'
+              }`}
+            >
+              {downloading ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Zapisywanie...</span>
+                </>
+              ) : cached ? (
+                <>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <span>Pobrano • Usuń</span>
+                </>
+              ) : (
+                <>
+                  <DownloadCloud className="w-3.5 h-3.5" />
+                  <span>Pobierz do PWA</span>
+                </>
+              )}
+            </button>
+          </div>
           {/* Media Switcher: Vector Animator vs Video Instruction */}
           <div>
             <div className="flex items-center justify-between mb-2">

@@ -14,6 +14,7 @@ import { NavTab } from './Header';
 import { PostureCameraAnalyzer } from './PostureCameraAnalyzer';
 import { WeeklySessionsMiniBarChart } from './WeeklySessionsMiniBarChart';
 import { DailyFitnessGoalRing } from './DailyFitnessGoalRing';
+import { RehabilitationMilestones } from './RehabilitationMilestones';
 
 interface Props {
   appState: AppState;
@@ -376,6 +377,17 @@ export const DashboardView: React.FC<Props> = ({
           planDays={appState.activePlan.days}
           targetGoal={5}
           onNavigateToPlan={() => onNavigateTab('plan')}
+        />
+      </motion.div>
+
+      {/* SECTION: Rehabilitation Milestones System (Bronze, Silver, Gold, Platinum) */}
+      <motion.div variants={itemVariants}>
+        <RehabilitationMilestones
+          achievements={appState.achievements}
+          totalCompletedSessions={appState.profile.totalCompletedSessions || 0}
+          streakDays={appState.profile.streakDays || 0}
+          onOpenAchievements={onOpenAchievements}
+          onStartActiveSession={() => onStartActiveSession(todayExercises)}
         />
       </motion.div>
 

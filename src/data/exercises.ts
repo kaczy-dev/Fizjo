@@ -361,5 +361,79 @@ export const EXERCISES: Exercise[] = [
     videoEmbedUrl: 'https://www.youtube-nocookie.com/embed/Gk_F6NnLd98',
     videoDuration: '3:30 min',
     videoInstructor: 'Metoda McKenziego – Przeprosty Lędźwiowe'
+  },
+  {
+    id: 'axial-towel-traction',
+    name: 'Autotrakcja osiowa ręcznikiem (Dekompresja C3-C7)',
+    polishName: 'Autotrakcja osiowa karku z ręcznikiem',
+    region: 'cervical',
+    difficulty: 'Łatwe',
+    targetMuscles: ['dekompresja przestrzeni międzykręgowych C3-C7', 'rozluźnienie więzadła karkowego', 'odciążenie korzeni nerwowych'],
+    description: 'Złoty standard autoterapii ostrego bólu szyi: delikatna trakcja osiowa ku górze z wykorzystaniem miękkiego ręcznika, rozszerzająca otwory międzykręgowe bez bolesnej rotacji czy zginania.',
+    steps: [
+      'Zwiń mały ręcznik w wałek i przyłóż go z tyłu karku, tuż pod potylicą.',
+      'Chwyć końce ręcznika obiema dłońmi z przodu na wysokości żuchwy.',
+      'Pociągnij delikatnie końce ręcznika w wektorze 45 stopni w przód i w górę (w stronę sufitu/czubka głowy).',
+      'Głowa pozostaje w pozycji neutralnej – ręcznik przejmuje część ciężaru czaszki, wydłużając kark.',
+      'Utrzymaj łagodne odciążenie przez 10-15 sekund, oddychając spokojnie torem brzusznym.',
+      'Powoli zwolnij naciąg i powtórz 3-4 razy.'
+    ],
+    safetyWarnings: [
+      'Siła uciągu powinna być minimalna i przyjemna – to nie ma być szarpanie.',
+      'W przypadku wystąpienia zawrotów głowy natychmiast przerwij ćwiczenie.'
+    ],
+    commonMistakes: [
+      'Zadzieranie głowy do tyłu podczas pociągania za ręcznik.',
+      'Zbyt gwałtowne puszczanie naciągu.'
+    ],
+    defaultSets: 1,
+    defaultReps: 4,
+    defaultHoldSeconds: 12,
+    tempo: '2-12-2',
+    breathingCue: 'Płynny, spokojny oddech. Przy wydechu poczuj, jak przestrzenie między kręgami zyskują ulgę.',
+    idealForSymptoms: ['ostry ból szyi', 'rwa ramienna w fazie wczesnej', 'ucisk korzeniowy C5-C7', 'kompresja krążka'],
+    contraindications: ['niestabilność szczytowo-potyliczna', 'świeże złamanie lub uraz biczowy <72h'],
+    animationType: 'chin_tuck',
+    videoUrl: 'https://www.youtube.com/watch?v=wQt_8mJmKQE',
+    videoEmbedUrl: 'https://www.youtube-nocookie.com/embed/wQt_8mJmKQE',
+    videoDuration: '2:15 min',
+    videoInstructor: 'Klinika Fizjoterapii – Trakcja Osiowa Karku'
+  },
+  {
+    id: 'diaphragmatic-neck-relief',
+    name: 'Odciążenie karku z oddechem dolnożebrowym',
+    polishName: 'Dekompresja karku z oddechem dolnożebrowym',
+    region: 'cervical',
+    difficulty: 'Łatwe',
+    targetMuscles: ['wyłączenie mm. pochyłych i mostkowo-obojczykowych', 'aktywacja przepony', 'wyciszenie układu współczulnego'],
+    description: 'Gdy odczuwasz silny ból szyi, odruchowo napinasz mięśnie pomocnicze oddechu. Ćwiczenie to wygasza obronny skurcz karku poprzez ukierunkowanie wdechu w dolne żebra.',
+    steps: [
+      'Połóż się na plecach z ugiętymi kolanami lub usiądź wygodnie z podpartymi plecami.',
+      'Połóż dłonie po bokach dolnych żeber (nie na klatce piersiowej ani na szyi).',
+      'Weź powolny, łagodny wdech nosem, czując jak dłonie na żebrach rozsuwają się na boki.',
+      'Zwróć uwagę, by barki i szyja pozostały całkowicie nieruchome i rozluźnione.',
+      'Zrób długi, miękki wydech ustami, wyobrażając sobie jak napięcie spływa z karku.',
+      'Powtórz 6-8 spokojnych cykli oddechowych.'
+    ],
+    safetyWarnings: [
+      'Nie forsuj maksymalnego wdechu, aby nie wywołać hiperwentylacji.',
+      'Oddychaj naturalnym, uspokajającym rytmem.'
+    ],
+    commonMistakes: [
+      'Unoszenie obojczyków i napinanie mięśni szyi podczas wdechu.',
+      'Wstrzymywanie powietrza w płucach.'
+    ],
+    defaultSets: 1,
+    defaultReps: 6,
+    defaultHoldSeconds: 6,
+    tempo: '4-2-6',
+    breathingCue: 'Wdech 4 sekundy dolnymi żebrami, pauza 2 sekundy, miękki wydech 6 sekund.',
+    idealForSymptoms: ['ostry skurcz obronny szyi', 'ból powiązany ze stresem', 'sztywność karku VAS 7-10'],
+    contraindications: ['brak istotnych przeciwwskazań'],
+    animationType: 'brugger_relief',
+    videoUrl: 'https://www.youtube.com/watch?v=Xz2gUoF9_X0',
+    videoEmbedUrl: 'https://www.youtube-nocookie.com/embed/Xz2gUoF9_X0',
+    videoDuration: '3:00 min',
+    videoInstructor: 'Klinika Rehabilitacji – Oddech Dolnożebrowy w Bólu Szyi'
   }
 ];

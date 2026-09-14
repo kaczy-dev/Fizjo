@@ -11,7 +11,8 @@ import {
   ShieldCheck,
   TrendingDown,
   Info,
-  Play
+  Play,
+  MessageSquare
 } from 'lucide-react';
 import { TrainingPlan, UserHealthProfile } from '../types';
 
@@ -196,6 +197,11 @@ export const RehabCalendarTracker: React.FC<Props> = ({
       return selectedDateStr;
     }
   }, [selectedDateStr]);
+
+  const matchingCompletedDay = useMemo(() => {
+    if (!plan?.days) return null;
+    return plan.days.find(d => d.completed && d.completedAt?.split('T')[0] === selectedDateStr);
+  }, [plan, selectedDateStr]);
 
   const weekDayLabels = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Nd'];
 
@@ -429,6 +435,20 @@ export const RehabCalendarTracker: React.FC<Props> = ({
               ? 'Wykonaj dzisiejszą 10-minutową sesję, aby utrzymać ciągłość serii (streak) i zredukować napięcie biurowe.'
               : 'Konsekwentny trening 3–4 razy w tygodniu redukuje ból karku wg standardów NFZ o ponad 60%.'}
           </p>
+
+          {matchingCompletedDay?.sessionNotes && (
+            <div className="mt-2.5 p-3 rounded-xl bg-teal-50/80 dark:bg-teal-950/50 border border-teal-200/80 dark:border-teal-800/60 text-xs flex items-start gap-2 text-left">
+              <MessageSquare className="w-4 h-4 text-teal-600 dark:text-teal-400 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold text-teal-900 dark:text-teal-200 block text-[11px] uppercase tracking-wide">
+                  Uwagi i odczucia z ćwiczeń:
+                </span>
+                <p className="text-slate-700 dark:text-slate-300 mt-0.5 whitespace-pre-line italic">
+                  „{matchingCompletedDay.sessionNotes}”
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         {isSelectedToday && !isSelectedCompleted && onStartSession && (

@@ -4,7 +4,7 @@ import {
   CheckCircle2, Clock, Lock, Download, Upload, Trash2, 
   ChevronRight, AlertTriangle, Edit3, HeartPulse, Trophy,
   Calendar, Dumbbell, Sparkles, Activity, Compass, ArrowRight,
-  Monitor, Moon, Wind
+  Monitor, Moon, Wind, Laptop
 } from 'lucide-react';
 import { AppState, PrivacyStorageService } from '../services/privacyStorage';
 import { evaluateWeeklyChallenges } from '../services/weeklyChallenges';
@@ -18,6 +18,10 @@ interface Props {
   onOpenEmergencyModal: () => void;
   onOpenBreathingModal?: () => void;
   onOpenBpsModal?: () => void;
+  isDarkMode?: boolean;
+  themeMode?: 'system' | 'light' | 'dark';
+  onForceSwitchTheme?: (target?: 'light' | 'dark') => void;
+  onSetThemeMode?: (mode: 'system' | 'light' | 'dark') => void;
 }
 
 export const ProfileView: React.FC<Props> = ({
@@ -26,7 +30,11 @@ export const ProfileView: React.FC<Props> = ({
   onNavigateToTab,
   onOpenEmergencyModal,
   onOpenBreathingModal,
-  onOpenBpsModal
+  onOpenBpsModal,
+  isDarkMode = true,
+  themeMode = 'system',
+  onForceSwitchTheme,
+  onSetThemeMode
 }) => {
   const [filterCategory, setFilterCategory] = useState<'all' | 'completed' | 'in_progress'>('all');
   const [isEditingProfile, setIsEditingProfile] = useState<boolean>(false);
@@ -130,6 +138,19 @@ export const ProfileView: React.FC<Props> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-2 self-stretch md:self-auto">
+          {onForceSwitchTheme && (
+            <button
+              id="profile-header-force-theme-btn"
+              type="button"
+              onClick={() => onForceSwitchTheme()}
+              title={isDarkMode ? 'Wymuś motyw jasny (ignorując system)' : 'Wymuś motyw ciemny (ignorując system)'}
+              className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 text-xs font-bold transition-all cursor-pointer"
+            >
+              {isDarkMode ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-indigo-400" />}
+              <span>{isDarkMode ? 'Wymuś Jasny Motyw' : 'Wymuś Ciemny Motyw'}</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={() => setIsEditingProfile(!isEditingProfile)}
@@ -620,6 +641,124 @@ export const ProfileView: React.FC<Props> = ({
               </p>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* Theme & Visual Appearance Setting Card */}
+      <div 
+        id="theme-switcher-profile-card"
+        className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xs space-y-5"
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-teal-50 dark:bg-teal-950/80 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0">
+              {isDarkMode ? <Moon className="w-6 h-6 text-indigo-400" /> : <Sun className="w-6 h-6 text-amber-500" />}
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
+                  Motyw i Wygląd Aplikacji
+                </h3>
+                <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
+                  themeMode === 'system'
+                    ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700'
+                    : 'bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 border border-teal-300 dark:border-teal-700'
+                }`}>
+                  {themeMode === 'system' ? 'Automatyczny (wg systemu)' : `Wymuszony: ${themeMode === 'dark' ? 'Ciemny' : 'Jasny'}`}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Możesz w każdej chwili wymusić tryb ciemny lub jasny, ignorując preferencje systemowe Twojego urządzenia.
+              </p>
+            </div>
+          </div>
+
+          {onForceSwitchTheme && (
+            <button
+              id="profile-force-toggle-quick-btn"
+              type="button"
+              onClick={() => onForceSwitchTheme()}
+              className="px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-colors shrink-0 cursor-pointer"
+            >
+              {isDarkMode ? <Sun className="w-4 h-4 text-amber-300" /> : <Moon className="w-4 h-4 text-indigo-200" />}
+              <span>{isDarkMode ? 'Wymuś Jasny Motyw' : 'Wymuś Ciemny Motyw'}</span>
+            </button>
+          )}
+        </div>
+
+        {/* 3 Explicit Choice Buttons */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+          <button
+            id="theme-force-dark-btn"
+            type="button"
+            onClick={() => onSetThemeMode ? onSetThemeMode('dark') : onForceSwitchTheme?.('dark')}
+            className={`p-4 rounded-2xl border text-left transition-all cursor-pointer flex items-center gap-3.5 ${
+              themeMode === 'dark'
+                ? 'bg-slate-900 text-white border-teal-500 ring-2 ring-teal-500/30 shadow-xs'
+                : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <div className="p-2.5 rounded-xl bg-slate-800 text-indigo-400 shrink-0">
+              <Moon className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                <span>Wymuszony Ciemny</span>
+                {themeMode === 'dark' && <CheckCircle2 className="w-3.5 h-3.5 text-teal-400" />}
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                Ciemny kontrast, oszczędność wzroku w nocy
+              </p>
+            </div>
+          </button>
+
+          <button
+            id="theme-force-light-btn"
+            type="button"
+            onClick={() => onSetThemeMode ? onSetThemeMode('light') : onForceSwitchTheme?.('light')}
+            className={`p-4 rounded-2xl border text-left transition-all cursor-pointer flex items-center gap-3.5 ${
+              themeMode === 'light'
+                ? 'bg-amber-50/80 text-amber-950 border-amber-400 ring-2 ring-amber-400/30 shadow-xs'
+                : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <div className="p-2.5 rounded-xl bg-amber-100 text-amber-600 shrink-0">
+              <Sun className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                <span>Wymuszony Jasny</span>
+                {themeMode === 'light' && <CheckCircle2 className="w-3.5 h-3.5 text-amber-600" />}
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                Jasne tło, wysoka czytelność w świetle dziennym
+              </p>
+            </div>
+          </button>
+
+          <button
+            id="theme-auto-system-btn"
+            type="button"
+            onClick={() => onSetThemeMode?.('system')}
+            className={`p-4 rounded-2xl border text-left transition-all cursor-pointer flex items-center gap-3.5 ${
+              themeMode === 'system'
+                ? 'bg-teal-50/80 dark:bg-teal-950/40 border-teal-500 ring-2 ring-teal-500/30 shadow-xs'
+                : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <div className="p-2.5 rounded-xl bg-teal-100 dark:bg-teal-900/60 text-teal-700 dark:text-teal-300 shrink-0">
+              <Laptop className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                <span>Zgodny z systemem</span>
+                {themeMode === 'system' && <CheckCircle2 className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />}
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                Automatycznie wg motywu urządzenia
+              </p>
+            </div>
+          </button>
         </div>
       </div>
 

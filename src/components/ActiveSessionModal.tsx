@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import confetti from 'canvas-confetti';
 import { 
   X, Play, Pause, SkipForward, RotateCcw, Volume2, VolumeX, 
   Heart, Sparkles, CheckCircle2, ChevronRight, AlertCircle, Wind, Video, ExternalLink, Target,
-  Gauge, Smile, Meh, Frown, Activity, Sliders, AlertTriangle, ShieldAlert, MessageSquare
+  Gauge, Smile, Meh, Frown, Activity, Sliders, AlertTriangle, ShieldAlert, ShieldCheck, MessageSquare
 } from 'lucide-react';
 import { Exercise, TrainingDay, PatientMood } from '../types';
 import { soundService } from '../services/soundService';
@@ -13,6 +13,8 @@ import { BreathingGuide } from './BreathingGuide';
 import { EmergencyRedFlagsModal } from './EmergencyRedFlagsModal';
 import { ClinicalFeedbackModal } from './ClinicalFeedbackModal';
 import { WearableLiveSyncPanel, WearableTelemetry } from './WearableLiveSyncPanel';
+import { adaptExercisesForVas, AdaptiveVasResult } from '../services/adaptiveVasExerciseService';
+import { AdaptiveVasExerciseCard } from './AdaptiveVasExerciseCard';
 
 export const DIFFICULTY_CONFIG = [
   { level: 1, label: 'Łagodny', desc: 'Dłuższy cykl (9.0s), powolne tempo, niska intensywność', cycleDurationMs: 9000 },
@@ -35,6 +37,7 @@ interface Props {
     stressLevel?: number;
     mood?: PatientMood;
     notes?: string;
+    exerciseNotes?: string;
   }) => void;
   onClose: () => void;
   wearableHeartRate?: number;
@@ -51,10 +54,27 @@ export const ActiveSessionModal: React.FC<Props> = ({
   const [preVas, setPreVas] = useState<number>(4);
   const [postVas, setPostVas] = useState<number>(2);
 
+  // Clinical Adaptive Intensity & Exercise Selection (VAS Shield)
+  const [useAdaptiveSelection, setUseAdaptiveSelection] = useState<boolean>(true);
+
+  const adaptiveResult: AdaptiveVasResult = useMemo(() => {
+    return adaptExercisesForVas(exercises, preVas);
+  }, [exercises, preVas]);
+
+  // If user sets VAS >= 7, automatically downscale tempo to level 1 for safety
+  useEffect(() => {
+    if (preVas >= 7) {
+      setDifficultyLevel(1);
+    }
+  }, [preVas]);
+
+  const activeExercises = useAdaptiveSelection ? adaptiveResult.adaptedExercises : exercises;
+
   // Psychosomatic pre-session tracking
   const [preStress, setPreStress] = useState<number>(4);
   const [preMood, setPreMood] = useState<PatientMood>('neutral');
   const [preNote, setPreNote] = useState<string>('');
+  const [postSessionNotes, setPostSessionNotes] = useState<string>('');
   const [showHighPainWarning, setShowHighPainWarning] = useState<boolean>(false);
   const [showRedFlagsModal, setShowRedFlagsModal] = useState<boolean>(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState<boolean>(false);
@@ -74,7 +94,7 @@ export const ActiveSessionModal: React.FC<Props> = ({
   const [repTimerSeconds, setRepTimerSeconds] = useState<number>(0);
 
   const [sessionElapsedSeconds, setSessionElapsedSeconds] = useState<number>(0);
-  const currentExercise = exercises[currentExIndex] || exercises[0];
+  const currentExercise = activeExercises[currentExIndex] || activeExercises[0];
 
   const currentDifficulty = DIFFICULTY_CONFIG.find(d => d.level === difficultyLevel) || DIFFICULTY_CONFIG[2];
 
@@ -95,19 +115,23 @@ export const ActiveSessionModal: React.FC<Props> = ({
     setStage('workout');
     soundService.playChime(520);
     if (voiceEnabled) {
-      speechService.speak(`Rozpoczynamy sesję rehabilitacyjną. Pierwsze ćwiczenie: ${currentExercise.polishName}. Przyjmij wygodną pozycję.`);
+      const isAcute = adaptiveResult.category === 'acute_protection';
+      const promptText = (isAcute && useAdaptiveSelection)
+        ? `Rozpoczynamy sesję ochronno-dekompresyjną. Zestaw został złagodzony dla poziomu bólu ${preVas}. Pierwsze ćwiczenie: ${currentExercise.polishName}. Przyjmij wygodną pozycję.`
+        : `Rozpoczynamy sesję rehabilitacyjną. Pierwsze ćwiczenie: ${currentExercise.polishName}. Przyjmij wygodną pozycję.`;
+      speechService.speak(promptText);
     }
   };
 
   const handleNextExerciseOrFinish = () => {
-    if (currentExIndex < exercises.length - 1) {
+    if (currentExIndex < activeExercises.length - 1) {
       const nextIndex = currentExIndex + 1;
       setCurrentExIndex(nextIndex);
       setCurrentSet(1);
       setCurrentRep(1);
       soundService.playChime(600);
       if (voiceEnabled) {
-        speechService.speak(`Świetnie! Przechodzimy do kolejnego ćwiczenia: ${exercises[nextIndex].polishName}.`);
+        speechService.speak(`Świetnie! Przechodzimy do kolejnego ćwiczenia: ${activeExercises[nextIndex].polishName}.`);
       }
     } else {
       // Finished all exercises
@@ -131,17 +155,23 @@ export const ActiveSessionModal: React.FC<Props> = ({
       // Confetti optional
     }
 
+    const trimmedExerciseNotes = postSessionNotes.trim();
+    const finalNotes = trimmedExerciseNotes
+      ? (preNote.trim() ? `${trimmedExerciseNotes} (Przed sesją: ${preNote.trim()})` : trimmedExerciseNotes)
+      : (preNote.trim() || undefined);
+
     setTimeout(() => {
       onComplete({
         preVas,
         postVas,
         durationMinutes: Math.max(1, Math.round(sessionElapsedSeconds / 60)),
-        completedCount: exercises.length,
+        completedCount: activeExercises.length,
         usedBreathingGuide: hasUsedBreathing,
         difficultyLevel,
         stressLevel: preStress,
         mood: preMood,
-        notes: preNote.trim() || undefined
+        notes: finalNotes,
+        exerciseNotes: trimmedExerciseNotes || undefined
       });
     }, 2400);
   };
@@ -175,8 +205,14 @@ export const ActiveSessionModal: React.FC<Props> = ({
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
             <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-              {stage === 'workout' ? `Ćwiczenie ${currentExIndex + 1} z ${exercises.length}` : 'Sesja Rehabilitacyjna'}
+              {stage === 'workout' ? `Ćwiczenie ${currentExIndex + 1} z ${activeExercises.length}` : 'Sesja Rehabilitacyjna'}
             </span>
+            {stage === 'workout' && adaptiveResult.isAdapted && useAdaptiveSelection && (
+              <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wide px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-300 dark:border-rose-800">
+                <ShieldCheck className="w-3 h-3 text-rose-600 dark:text-rose-400" />
+                Tarcza VAS {preVas}
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
@@ -364,6 +400,15 @@ export const ActiveSessionModal: React.FC<Props> = ({
               </div>
             </div>
 
+            {/* Clinical Adaptive Intensity & Exercise Selection (VAS Shield) */}
+            <div className="w-full max-w-md">
+              <AdaptiveVasExerciseCard
+                adaptiveResult={adaptiveResult}
+                useAdaptiveSelection={useAdaptiveSelection}
+                onToggleAdaptiveSelection={(enabled) => setUseAdaptiveSelection(enabled)}
+              />
+            </div>
+
             <div className="w-full max-w-md">
               {showHighPainWarning && preVas >= 8 ? (
                 <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/60 border border-rose-300 dark:border-rose-800 text-left space-y-3">
@@ -374,7 +419,7 @@ export const ActiveSessionModal: React.FC<Props> = ({
                         Ostrzeżenie kliniczne: Ból {preVas}/10 VAS
                       </h4>
                       <p className="text-xs text-rose-700 dark:text-rose-300 mt-1 leading-relaxed">
-                        Wysoki poziom bólu wskazuje na ostry stan zapalny lub ucisk korzeniowy. Dynamiczny trening może być w tej chwili ryzykowny.
+                        Wysoki poziom bólu wskazuje na ostry stan zapalny lub ucisk korzeniowy. Zastosowano protokół ochronno-dekompresyjny (autotrakcja osiowa, oddech dolnożebrowy, cykl 9s).
                       </p>
                     </div>
                   </div>
@@ -389,7 +434,7 @@ export const ActiveSessionModal: React.FC<Props> = ({
                       }}
                       className="w-full py-2.5 px-3 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer"
                     >
-                      Przełącz na najłagodniejsze tempo (Poziom 1 • cykl 9s)
+                      Rozpocznij najłagodniejszą dekompresję (Poziom 1 • cykl 9s)
                     </button>
 
                     <button
@@ -417,16 +462,24 @@ export const ActiveSessionModal: React.FC<Props> = ({
                   id="start-workout-confirm-btn"
                   type="button"
                   onClick={() => {
-                    if (preVas >= 8) {
+                    if (preVas >= 8 && !useAdaptiveSelection) {
                       setShowHighPainWarning(true);
                     } else {
                       startWorkoutFromPreVas();
                     }
                   }}
-                  className="w-full py-3.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-sm shadow-md hover:shadow-teal-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  className={`w-full py-3.5 rounded-xl font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer text-white ${
+                    adaptiveResult.category === 'acute_protection' && useAdaptiveSelection
+                      ? 'bg-rose-600 hover:bg-rose-500 shadow-rose-500/25'
+                      : 'bg-teal-600 hover:bg-teal-500 hover:shadow-teal-500/25'
+                  }`}
                 >
                   <Play className="w-4 h-4 fill-current" />
-                  <span>Rozpocznij bezpieczną sesję ({exercises.length} ćwiczenia)</span>
+                  <span>
+                    {adaptiveResult.category === 'acute_protection' && useAdaptiveSelection
+                      ? `Rozpocznij sesję ochronno-dekompresyjną (${activeExercises.length} ćwiczenia)`
+                      : `Rozpocznij bezpieczną sesję (${activeExercises.length} ćwiczenia)`}
+                  </span>
                 </button>
               )}
             </div>
@@ -669,7 +722,7 @@ export const ActiveSessionModal: React.FC<Props> = ({
                 onClick={handleNextExerciseOrFinish}
                 className="px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-xs transition-colors flex items-center gap-1.5"
               >
-                <span>{currentExIndex < exercises.length - 1 ? 'Następne' : 'Zakończ'}</span>
+                <span>{currentExIndex < activeExercises.length - 1 ? 'Następne' : 'Zakończ'}</span>
                 <SkipForward className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -721,6 +774,20 @@ export const ActiveSessionModal: React.FC<Props> = ({
                 </span>
                 <span className="text-slate-500">Po: {postVas} VAS</span>
               </div>
+
+              {useAdaptiveSelection && (
+                <div className="mt-3.5 p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-left text-xs space-y-1">
+                  <div className="flex items-center gap-1.5 font-bold text-slate-800 dark:text-slate-200">
+                    <ShieldCheck className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                    <span>Protokół: {adaptiveResult.categoryTitle}</span>
+                  </div>
+                  <p className="text-slate-600 dark:text-slate-400 text-[11px]">
+                    {preVas - postVas > 0
+                      ? `Zastosowanie adaptacji do wyjściowego bólu (${preVas}/10 VAS) pozwoliło na bezpieczną redukcję dolegliwości o ${preVas - postVas} pkt.`
+                      : `Parametry sesji zostały bezpiecznie ograniczone pod osłoną protokołu kinezjologicznego.`}
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Wearable Biometric Session Summary */}
@@ -751,6 +818,98 @@ export const ActiveSessionModal: React.FC<Props> = ({
                 </div>
               </div>
             )}
+
+            {/* Opcjonalne pole tekstowe: Uwagi i odczucia do konkretnych ćwiczeń */}
+            <div className="w-full max-w-md bg-slate-50 dark:bg-slate-800/60 rounded-2xl p-4 sm:p-5 border border-slate-200 dark:border-slate-700/60 space-y-3 text-left">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                  <span className="text-xs font-bold text-slate-900 dark:text-white">
+                    Odczucia i uwagi do ćwiczeń
+                  </span>
+                </div>
+                <span className="px-2 py-0.5 rounded-full bg-slate-200/80 dark:bg-slate-700 text-[10px] font-bold text-slate-600 dark:text-slate-300">
+                  Opcjonalnie
+                </span>
+              </div>
+
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                Zanotuj odczucia z konkretnych ruchów (np. które ćwiczenie przyniosło największą ulgę lub wywołało ciągnięcie). Zostaną zapisane w historii sesji.
+              </p>
+
+              {/* Szybkie wstawianie nazwy ćwiczenia */}
+              <div className="space-y-1.5">
+                <div className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  Wybierz ćwiczenie z sesji:
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {activeExercises.map((ex) => (
+                    <button
+                      key={ex.id}
+                      type="button"
+                      onClick={() => {
+                        const prefix = `[${ex.polishName}]: `;
+                        setPostSessionNotes((prev) => {
+                          if (prev.includes(prefix)) return prev;
+                          return prev.trim() ? `${prev.trim()}\n${prefix}` : prefix;
+                        });
+                      }}
+                      className="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-teal-500 text-slate-700 dark:text-slate-300 hover:text-teal-600 transition-colors cursor-pointer"
+                    >
+                      + {ex.polishName}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Szybkie tagi odczuć */}
+              <div className="flex flex-wrap gap-1.5 pt-0.5">
+                {[
+                  '✨ Wyraźna ulga',
+                  '🌱 Głębokie rozluźnienie',
+                  '⚠️ Lekkie ciągnięcie',
+                  '💪 Zwiększony zakres ruchu',
+                  '🛑 Delikatny dyskomfort'
+                ].map((sensation) => (
+                  <button
+                    key={sensation}
+                    type="button"
+                    onClick={() => {
+                      setPostSessionNotes((prev) => {
+                        if (!prev) return sensation;
+                        if (prev.endsWith(': ')) return `${prev}${sensation}`;
+                        return `${prev.trim()}, ${sensation}`;
+                      });
+                    }}
+                    className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-teal-50/80 dark:bg-teal-950/50 border border-teal-200/60 dark:border-teal-800/60 text-teal-800 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900/60 transition-colors cursor-pointer"
+                  >
+                    {sensation}
+                  </button>
+                ))}
+              </div>
+
+              {/* Pole tekstowe */}
+              <div className="relative">
+                <textarea
+                  id="post-session-exercise-notes"
+                  rows={3}
+                  value={postSessionNotes}
+                  onChange={(e) => setPostSessionNotes(e.target.value)}
+                  placeholder="Wpisz swoje odczucia (np. Przy retrakcji brody wyraźne rozluźnienie potylicy, przy rozciąganiu karku lekkie napięcie po prawej stronie...)"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-teal-500 transition-all resize-y"
+                />
+                {postSessionNotes && (
+                  <button
+                    type="button"
+                    onClick={() => setPostSessionNotes('')}
+                    className="absolute right-2.5 top-2.5 px-1.5 py-0.5 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 text-[10px] font-semibold"
+                    title="Wyczyść pole uwag"
+                  >
+                    Wyczyść
+                  </button>
+                )}
+              </div>
+            </div>
 
             <button
               id="finish-session-submit-btn"

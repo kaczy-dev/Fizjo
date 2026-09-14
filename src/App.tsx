@@ -17,7 +17,7 @@ import { PrivacyStorageService, AppState } from './services/privacyStorage';
 import { evaluateAchievements, INITIAL_ACHIEVEMENTS, Achievement } from './services/achievements';
 import { EXERCISES } from './data/exercises';
 import { Exercise, TrainingDay, PainReport, PatientMood } from './types';
-import { ShieldCheck, Trophy, Sparkles, Bell, Clock, Zap } from 'lucide-react';
+import { ShieldCheck, Trophy, Sparkles, Bell, Clock, Zap, Sun, Moon, Laptop } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { ProfileView } from './components/ProfileView';
@@ -109,6 +109,50 @@ export default function App() {
       }
       return next;
     });
+  };
+
+  const handleForceSwitchTheme = (target?: 'light' | 'dark') => {
+    const next: 'light' | 'dark' = target || (isDarkMode ? 'light' : 'dark');
+    setThemeMode(next);
+    setIsDarkMode(next === 'dark');
+    if (next === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    try {
+      localStorage.setItem('fizjo_theme_mode', next);
+    } catch {
+      // storage fallback
+    }
+  };
+
+  const handleSetThemeMode = (mode: 'system' | 'light' | 'dark') => {
+    setThemeMode(mode);
+    try {
+      localStorage.setItem('fizjo_theme_mode', mode);
+    } catch {
+      // storage fallback
+    }
+    if (mode === 'system') {
+      const prefersDark = typeof window !== 'undefined' && window.matchMedia
+        ? window.matchMedia('(prefers-color-scheme: dark)').matches
+        : true;
+      setIsDarkMode(prefersDark);
+      if (prefersDark) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    } else {
+      const isDark = mode === 'dark';
+      setIsDarkMode(isDark);
+      if (isDark) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
   };
 
   // Modals state
@@ -233,10 +277,13 @@ export default function App() {
     stressLevel?: number;
     mood?: PatientMood;
     notes?: string;
+    exerciseNotes?: string;
   }) => {
     const todayStr = new Date().toISOString();
     const todayDateOnly = todayStr.split('T')[0];
     let updatedDays = [...appState.activePlan.days];
+
+    const noteToStore = stats.exerciseNotes || stats.notes;
 
     if (activeSessionDay) {
       updatedDays = updatedDays.map((d) => {
@@ -246,7 +293,8 @@ export default function App() {
             completed: true,
             completedAt: todayStr,
             prePainVas: stats.preVas,
-            postPainVas: stats.postVas
+            postPainVas: stats.postVas,
+            sessionNotes: noteToStore
           };
         }
         return d;
@@ -260,7 +308,7 @@ export default function App() {
       ? currentDates 
       : [...currentDates, todayDateOnly].sort();
 
-    // Record session into painHistory with psychosomatic data
+    // Record session into painHistory with psychosomatic data & exercise notes
     const sessionReport: PainReport = {
       id: `session-vas-${Date.now()}`,
       date: todayStr,
@@ -273,12 +321,15 @@ export default function App() {
       stressLevel: stats.stressLevel ?? 4,
       mood: stats.mood ?? 'neutral',
       psychosomaticNotes: stats.notes,
+      sessionNotes: noteToStore,
       aiAnalysis: {
         riskLevel: stats.preVas <= 3 ? 'low' : stats.preVas <= 6 ? 'moderate' : 'high_consult_doctor',
         urgency: 'routine',
         primarySuspicion: `Sesja ćwiczeń (trudność: ${stats.difficultyLevel || 3}/5). Wynik: ${stats.preVas} → ${stats.postVas} VAS.`,
         redFlagsDetected: [],
-        explanation: `Ćwiczenia zredukowały ból z ${stats.preVas} do ${stats.postVas} pkt VAS. Nastrój przed: ${stats.mood || 'neutralny'}, poziom stresu: ${stats.stressLevel ?? 4}/10.`,
+        explanation: `Ćwiczenia zredukowały ból z ${stats.preVas} do ${stats.postVas} pkt VAS.${
+          noteToStore ? ` Uwagi z ćwiczeń: "${noteToStore}".` : ''
+        } Nastrój przed: ${stats.mood || 'neutralny'}, poziom stresu: ${stats.stressLevel ?? 4}/10.`,
         recommendedExercises: ['chin-tuck', 'brugger-relief'],
         contraindicatedExercises: [],
         immediateReliefAdvice: ['Nawodnienie', 'Płynny, spokojny oddech przeponowy'],
@@ -622,15 +673,19 @@ export default function App() {
                 onOpenEmergencyModal={() => setIsRedFlagsModalOpen(true)}
                 onOpenBreathingModal={() => setIsBreathingModalOpen(true)}
                 onOpenBpsModal={() => setIsBpsModalOpen(true)}
+                isDarkMode={isDarkMode}
+                themeMode={themeMode}
+                onForceSwitchTheme={handleForceSwitchTheme}
+                onSetThemeMode={handleSetThemeMode}
               />
             )}
           </motion.div>
         </AnimatePresence>
       </main>
 
-      {/* Footer with Medical Disclaimers & Privacy Notice */}
+      {/* Footer with Medical Disclaimers, Privacy Notice & Dedicated Theme Switcher */}
       <footer className="mt-auto border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 text-xs py-8 px-4 sm:px-6">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-5 text-center md:text-left">
           <div className="space-y-1">
             <div className="flex items-center justify-center md:justify-start gap-2 font-bold text-slate-800 dark:text-slate-200">
               <ShieldCheck className="w-4 h-4 text-emerald-500" />
@@ -641,7 +696,32 @@ export default function App() {
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center gap-3 text-[11px]">
+          <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center md:justify-end gap-3 text-[11px]">
+            {/* Dedicated Force Theme Switcher Button */}
+            <button
+              id="footer-force-theme-switch-btn"
+              type="button"
+              onClick={() => handleForceSwitchTheme()}
+              title={isDarkMode ? 'Wymuś tryb jasny (ignorując ustawienia systemu operacyjnego)' : 'Wymuś tryb ciemny (ignorując ustawienia systemu operacyjnego)'}
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-300 dark:border-slate-700 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition-all shadow-xs cursor-pointer group"
+            >
+              {isDarkMode ? (
+                <>
+                  <Sun className="w-3.5 h-3.5 text-amber-500 group-hover:rotate-45 transition-transform" />
+                  <span>Wymuś Jasny Motyw</span>
+                </>
+              ) : (
+                <>
+                  <Moon className="w-3.5 h-3.5 text-indigo-400 group-hover:-rotate-12 transition-transform" />
+                  <span>Wymuś Ciemny Motyw</span>
+                </>
+              )}
+              <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-teal-500/15 text-teal-700 dark:text-teal-300 font-mono">
+                {themeMode === 'system' ? 'System' : 'Wymuszony'}
+              </span>
+            </button>
+
+            <span className="hidden sm:inline text-slate-300 dark:text-slate-700">•</span>
             <button
               type="button"
               onClick={() => setIsConsentModalOpen(true)}

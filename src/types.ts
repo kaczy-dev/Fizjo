@@ -49,6 +49,7 @@ export interface TrainingDay {
   prePainVas?: number;
   postPainVas?: number;
   dailySchedule?: DayScheduleItem[];
+  sessionNotes?: string; // Uwagi pacjenta po zakończeniu sesji dotyczące odczuć podczas konkretnych ćwiczeń
 }
 
 export interface TrainingPlan {
@@ -145,6 +146,7 @@ export interface PainReport {
   stressLevel?: number; // 1-10 (poziom stresu przed sesją)
   mood?: PatientMood; // nastrój przed sesją
   psychosomaticNotes?: string; // notatka o nastroju i czynnikach stresogennych
+  sessionNotes?: string; // uwagi dotyczące odczuć podczas konkretnych ćwiczeń po sesji
 }
 
 export interface TriageResult {

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   FileText, Download, TrendingDown, Award, Calendar, 
-  RotateCw, ShieldCheck, Plus, CheckCircle2, Trash2, Upload, Lock 
+  RotateCw, ShieldCheck, Plus, CheckCircle2, Trash2, Upload, Lock, MessageSquare 
 } from 'lucide-react';
 import { AppState, PrivacyStorageService } from '../services/privacyStorage';
 import { generateDoctorMedicalPdf, generatePhysiotherapistReportPdf } from '../services/pdfExport';
@@ -350,6 +350,12 @@ export const ProgressReportView: React.FC<Props> = ({ appState, onUpdateState, o
                       {rep.aiAnalysis?.primarySuspicion || 'Wpis do dziennika'}
                       {rep.stressLevel !== undefined && ` • Stres: ${rep.stressLevel}/10`}
                     </div>
+                    {(rep.sessionNotes || rep.psychosomaticNotes) && (
+                      <div className="mt-1.5 flex items-start gap-1.5 text-[11px] text-teal-800 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/60 border border-teal-200/80 dark:border-teal-800/60 rounded-lg px-2.5 py-1">
+                        <MessageSquare className="w-3.5 h-3.5 shrink-0 mt-0.5 text-teal-600 dark:text-teal-400" />
+                        <span><strong>Uwagi do ćwiczeń:</strong> {rep.sessionNotes || rep.psychosomaticNotes}</span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-2 self-start sm:self-auto">
