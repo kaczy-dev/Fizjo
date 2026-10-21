@@ -21,13 +21,15 @@ interface Props {
   profile?: UserHealthProfile;
   completedDates?: string[]; // array of 'YYYY-MM-DD' strings
   onStartSession?: () => void;
+  onToggleDate?: (dateStr: string) => void;
 }
 
 export const RehabCalendarTracker: React.FC<Props> = ({
   plan,
   profile,
   completedDates = [],
-  onStartSession
+  onStartSession,
+  onToggleDate
 }) => {
   const today = useMemo(() => new Date(), []);
   const todayDateStr = useMemo(() => {

@@ -26,6 +26,8 @@ interface Props {
 }
 
 const WEARABLE_DEVICES = [
+  { id: 'huawei_gt', name: 'HUAWEI WATCH GT 4 / GT 5 Pro', sensor: 'HUAWEI TruSeen™ 5.5+ PPG', battery: 92 },
+  { id: 'huawei_fit', name: 'HUAWEI WATCH FIT 3 / Band 9', sensor: 'HUAWEI TruSeen™ 5.0 Sensor', battery: 88 },
   { id: 'garmin', name: 'Garmin Forerunner 965', sensor: 'Elevate 5 PPG', battery: 89 },
   { id: 'apple', name: 'Apple Watch Ultra 2', sensor: 'EKG + Podwójny PPG', battery: 94 },
   { id: 'polar', name: 'Polar H10 (Pas Piersiowy)', sensor: 'Medyczny EKG RR', battery: 78 },

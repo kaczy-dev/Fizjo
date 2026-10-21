@@ -3,11 +3,13 @@ import confetti from 'canvas-confetti';
 import { 
   X, Play, Pause, SkipForward, RotateCcw, Volume2, VolumeX, 
   Heart, Sparkles, CheckCircle2, ChevronRight, AlertCircle, Wind, Video, ExternalLink, Target,
-  Gauge, Smile, Meh, Frown, Activity, Sliders, AlertTriangle, ShieldAlert, ShieldCheck, MessageSquare
+  Gauge, Smile, Meh, Frown, Activity, Sliders, AlertTriangle, ShieldAlert, ShieldCheck, MessageSquare,
+  Headphones
 } from 'lucide-react';
 import { Exercise, TrainingDay, PatientMood } from '../types';
 import { soundService } from '../services/soundService';
 import { speechService } from '../services/speechService';
+import { ambientSoundscapeService } from '../services/ambientSoundscapeService';
 import { BiomechanicalAnimator } from './BiomechanicalAnimator';
 import { BreathingGuide } from './BreathingGuide';
 import { EmergencyRedFlagsModal } from './EmergencyRedFlagsModal';
@@ -15,6 +17,7 @@ import { ClinicalFeedbackModal } from './ClinicalFeedbackModal';
 import { WearableLiveSyncPanel, WearableTelemetry } from './WearableLiveSyncPanel';
 import { adaptExercisesForVas, AdaptiveVasResult } from '../services/adaptiveVasExerciseService';
 import { AdaptiveVasExerciseCard } from './AdaptiveVasExerciseCard';
+import { AmbientSoundscapePlayer } from './AmbientSoundscapePlayer';
 
 export const DIFFICULTY_CONFIG = [
   { level: 1, label: 'Łagodny', desc: 'Dłuższy cykl (9.0s), powolne tempo, niska intensywność', cycleDurationMs: 9000 },
@@ -41,13 +44,19 @@ interface Props {
   }) => void;
   onClose: () => void;
   wearableHeartRate?: number;
+  heartRateThresholdBpm?: number;
+  wearableSource?: string;
+  wearableDeviceName?: string;
 }
 
 export const ActiveSessionModal: React.FC<Props> = ({
   exercises,
   onComplete,
   onClose,
-  wearableHeartRate
+  wearableHeartRate,
+  heartRateThresholdBpm = 120,
+  wearableSource,
+  wearableDeviceName
 }) => {
   // Session Stages: 'pre_vas' -> 'workout' -> 'post_vas' -> 'celebration'
   const [stage, setStage] = useState<'pre_vas' | 'workout' | 'post_vas' | 'celebration'>('pre_vas');
@@ -79,6 +88,14 @@ export const ActiveSessionModal: React.FC<Props> = ({
   const [showRedFlagsModal, setShowRedFlagsModal] = useState<boolean>(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState<boolean>(false);
   const [liveTelemetry, setLiveTelemetry] = useState<WearableTelemetry | null>(null);
+  
+  // Heart Rate Threshold Monitoring (Huawei & Wearable Sync)
+  const [thresholdAlertToast, setThresholdAlertToast] = useState<{
+    bpm: number;
+    threshold: number;
+    timestamp: number;
+  } | null>(null);
+  const lastAlertTimeRef = useRef<number>(0);
 
   // Workout state
   const [difficultyLevel, setDifficultyLevel] = useState<number>(3); // 1-5 slider
@@ -93,12 +110,55 @@ export const ActiveSessionModal: React.FC<Props> = ({
   const [activeMediaTab, setActiveMediaTab] = useState<'animator' | 'video'>('animator');
   const [repTimerSeconds, setRepTimerSeconds] = useState<number>(0);
 
+  // Active workout heart rate monitoring against user-defined threshold
+  useEffect(() => {
+    const currentHr = liveTelemetry?.heartRate || wearableHeartRate;
+    const effectiveThreshold = heartRateThresholdBpm || 120;
+
+    if (stage === 'workout' && currentHr && currentHr > effectiveThreshold) {
+      const now = Date.now();
+      // Debounce notification: alert at most once every 25 seconds
+      if (now - lastAlertTimeRef.current > 25000) {
+        lastAlertTimeRef.current = now;
+        setThresholdAlertToast({
+          bpm: currentHr,
+          threshold: effectiveThreshold,
+          timestamp: now
+        });
+        soundService.playChime(430);
+        if (voiceEnabled) {
+          speechService.speak(
+            `Uwaga! Zegarek Huawei wykrył tętno ${currentHr} uderzeń na minutę, przekraczające próg ${effectiveThreshold}. Zalecana krótka przerwa i spokojny oddech.`
+          );
+        }
+      }
+    }
+  }, [liveTelemetry?.heartRate, wearableHeartRate, heartRateThresholdBpm, stage, voiceEnabled]);
+
   const [sessionElapsedSeconds, setSessionElapsedSeconds] = useState<number>(0);
   const currentExercise = activeExercises[currentExIndex] || activeExercises[0];
 
   const currentDifficulty = DIFFICULTY_CONFIG.find(d => d.level === difficultyLevel) || DIFFICULTY_CONFIG[2];
 
   const timerRef = useRef<number | null>(null);
+
+  // Ambient soundscape playback state
+  const [isAmbientPlaying, setIsAmbientPlaying] = useState<boolean>(ambientSoundscapeService.getState().isPlaying);
+
+  useEffect(() => {
+    const unsub = ambientSoundscapeService.subscribe((s) => {
+      setIsAmbientPlaying(s.isPlaying);
+    });
+    return () => {
+      unsub();
+      ambientSoundscapeService.pause();
+    };
+  }, []);
+
+  const handleClose = () => {
+    ambientSoundscapeService.pause();
+    onClose();
+  };
 
   // Overall session elapsed timer
   useEffect(() => {
@@ -136,6 +196,7 @@ export const ActiveSessionModal: React.FC<Props> = ({
     } else {
       // Finished all exercises
       setStage('post_vas');
+      ambientSoundscapeService.pause();
       soundService.playCompletion();
       if (voiceEnabled) {
         speechService.speak('Wspaniale, ukończyłeś wszystkie zaplanowane ćwiczenia! Jak teraz oceniasz ból?');
@@ -252,6 +313,22 @@ export const ActiveSessionModal: React.FC<Props> = ({
               {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
             </button>
 
+            {/* Ambient Soundscape Toggle */}
+            <button
+              id="toggle-ambient-soundscape-top-btn"
+              type="button"
+              onClick={() => ambientSoundscapeService.togglePlay()}
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer ${
+                isAmbientPlaying
+                  ? 'border-teal-400 bg-teal-50 dark:bg-teal-950/80 text-teal-700 dark:text-teal-200 shadow-xs animate-pulse'
+                  : 'border-slate-200 bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+              }`}
+              title={isAmbientPlaying ? 'Tło dźwiękowe aktywne - kliknij aby zatrzymać' : 'Włącz tło relaksacyjne (fale binauralne, natura)'}
+            >
+              <Headphones className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Tło skupienia</span>
+            </button>
+
             {/* In-Session Feedback Button */}
             <button
               id="in-session-feedback-btn"
@@ -268,7 +345,7 @@ export const ActiveSessionModal: React.FC<Props> = ({
             <button
               id="close-active-session-btn"
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
             >
               <X className="w-5 h-5" />
@@ -489,6 +566,74 @@ export const ActiveSessionModal: React.FC<Props> = ({
         {/* STAGE 2: ACTIVE WORKOUT PLAYER */}
         {stage === 'workout' && currentExercise && (
           <div className="p-5 sm:p-6 space-y-4 flex-1 overflow-y-auto">
+            {/* THRESHOLD TOAST NOTIFICATION RECOMMENDING BRIEF PAUSE */}
+            {thresholdAlertToast && (
+              <div 
+                id="heart-rate-threshold-toast"
+                className="p-4 rounded-2xl bg-amber-500/95 dark:bg-amber-600/95 text-white shadow-xl backdrop-blur-md border border-amber-300 dark:border-amber-400 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in slide-in-from-top-3"
+              >
+                <div className="flex items-start sm:items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center shrink-0">
+                    <Heart className="w-5 h-5 fill-white text-white animate-ping" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-extrabold text-sm">
+                        Podwyższone tętno: {thresholdAlertToast.bpm} BPM
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-black/25 text-amber-100 font-mono">
+                        Próg: &gt;{thresholdAlertToast.threshold} BPM
+                      </span>
+                      <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-white/20 text-white">
+                        HUAWEI Smartwatch
+                      </span>
+                    </div>
+                    <p className="text-xs text-amber-100 mt-1 leading-snug">
+                      Zegarek wykrył przekroczenie ustalonego progu tętna. <strong>Zalecana krótka przerwa</strong>, zwolnienie tempa ćwiczeń i wyrównanie oddechu przeponowego.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                  {!isPaused ? (
+                    <button
+                      id="pause-session-for-hr-btn"
+                      type="button"
+                      onClick={() => {
+                        setIsPaused(true);
+                        soundService.playChime(500);
+                      }}
+                      className="px-3.5 py-2 rounded-xl bg-white text-amber-950 hover:bg-amber-50 font-bold text-xs shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Pause className="w-3.5 h-3.5 fill-current" />
+                      <span>Zrób przerwę (Pauza)</span>
+                    </button>
+                  ) : (
+                    <button
+                      id="resume-session-after-hr-btn"
+                      type="button"
+                      onClick={() => {
+                        setIsPaused(false);
+                        soundService.playChime(550);
+                      }}
+                      className="px-3.5 py-2 rounded-xl bg-white/25 hover:bg-white/35 text-white font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Play className="w-3.5 h-3.5 fill-current" />
+                      <span>Wznów ćwiczenia</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setThresholdAlertToast(null)}
+                    className="p-2 rounded-xl bg-black/20 hover:bg-black/35 text-white/90 hover:text-white transition-colors cursor-pointer"
+                    title="Zamknij powiadomienie"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Header info for current exercise */}
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -578,6 +723,9 @@ export const ActiveSessionModal: React.FC<Props> = ({
               isBreathingActive={showBreathingGuide}
               isPaused={isPaused}
             />
+
+            {/* Ambient Soundscape Player (Nature Sounds, Binaural Beats for Focus) */}
+            <AmbientSoundscapePlayer />
 
             {/* Media Mode Tabs: Biomechanical Animation vs Video HD */}
             <div className="flex items-center justify-between">

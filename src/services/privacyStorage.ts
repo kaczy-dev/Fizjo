@@ -98,16 +98,52 @@ const DEFAULT_REMINDERS: ReminderConfig = {
   activeLifestylePreset: 'office_standard'
 };
 
+export const generateDefaultHeartRateHistory = () => {
+  const dayNames = ['Nd', 'Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'Sb'];
+  const history = [];
+  const baseResting = [66, 64, 65, 63, 62, 64, 61];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 86400000);
+    const dateStr = d.toISOString().split('T')[0];
+    const dayLabel = dayNames[d.getDay()];
+    const rhr = baseResting[6 - i] || 63;
+    history.push({
+      date: dateStr,
+      dayLabel,
+      restingHeartRate: rhr,
+      avgHeartRate: rhr + 10,
+      maxHeartRate: rhr + 48,
+      source: 'HUAWEI TruSeen™ 5.5+'
+    });
+  }
+  return history;
+};
+
 const DEFAULT_WEARABLE: WearableDevice = {
-  connected: false,
-  deviceName: 'Apple Watch / Smart Band',
-  batteryLevel: 88,
-  currentHeartRate: 72,
+  connected: true,
+  deviceName: 'HUAWEI WATCH GT 4',
+  batteryLevel: 92,
+  currentHeartRate: 71,
   todaySteps: 6420,
   activeMinutes: 28,
-  sedentaryAlertsCount: 3,
-  lastSync: new Date().toISOString(),
-  source: 'simulated'
+  sedentaryAlertsCount: 2,
+  lastSync: new Date(Date.now() - 4 * 60 * 1000).toISOString(),
+  source: 'huawei_health',
+  autoSyncEnabled: true,
+  heartRateThresholdBpm: 120,
+  connectionRssi: -62,
+  connectionSignal: 'excellent',
+  heartRateHistory: generateDefaultHeartRateHistory(),
+  huaweiDetails: {
+    modelName: 'HUAWEI WATCH GT 4',
+    truSeenVersion: 'HUAWEI TruSeen™ 5.5+ PPG Sensor',
+    firmwareVersion: 'HarmonyOS 4.2.0.103',
+    connectionType: 'health_app_sync',
+    signalStrength: 'doskonała',
+    rssi: -62,
+    sensorStatus: 'live_streaming',
+    autoSyncIntervalMinutes: 15
+  }
 };
 
 export class PrivacyStorageService {
@@ -129,13 +165,34 @@ export class PrivacyStorageService {
             })
           : INITIAL_ACHIEVEMENTS;
 
+        let loadedPainHistory = Array.isArray(parsed.painHistory) ? parsed.painHistory : [];
+        if (loadedPainHistory.length > 0 && !loadedPainHistory.some(r => r.postureTiltAngleDeg !== undefined)) {
+          loadedPainHistory = loadedPainHistory.map((rep) => {
+            if (rep.id === 'report-1') {
+              return { ...rep, postureTiltAngleDeg: 27, postureDiagnosis: 'Łagodne wysunięcie (Tech-Neck I°)' };
+            }
+            if (rep.id === 'report-2') {
+              return { ...rep, postureTiltAngleDeg: 16, postureDiagnosis: 'Fizjologiczna norma (Oś strzałkowa)' };
+            }
+            return rep;
+          });
+        }
+
+        const loadedWearable: WearableDevice = {
+          ...DEFAULT_WEARABLE,
+          ...parsed.wearable,
+          heartRateHistory: (parsed.wearable?.heartRateHistory && parsed.wearable.heartRateHistory.length > 0)
+            ? parsed.wearable.heartRateHistory
+            : generateDefaultHeartRateHistory()
+        };
+
         return {
           profile: { ...DEFAULT_PROFILE, ...parsed.profile },
           activePlan: parsed.activePlan || generatePersonalizedPlan({ primaryProblem: 'tech_neck', workType: 'desk', dailyMinutes: 10, baselineVas: 4 }),
-          painHistory: Array.isArray(parsed.painHistory) ? parsed.painHistory : [],
+          painHistory: loadedPainHistory,
           medications: Array.isArray(parsed.medications) ? parsed.medications : DEFAULT_MEDICATIONS,
           reminders: { ...DEFAULT_REMINDERS, ...parsed.reminders },
-          wearable: { ...DEFAULT_WEARABLE, ...parsed.wearable },
+          wearable: loadedWearable,
           achievements: loadedAchievements
         };
       }
@@ -173,9 +230,9 @@ export class PrivacyStorageService {
 
     const samplePainReports: PainReport[] = [
       {
-        id: 'report-1',
-        date: new Date(Date.now() - 5 * 86400000).toISOString(),
-        vasScore: 6,
+        id: 'report-baseline',
+        date: new Date(Date.now() - 14 * 86400000).toISOString(),
+        vasScore: 7,
         region: 'nape',
         character: 'stiff',
         triggers: ['dluga_praca_przy_komputerze', 'stres'],
@@ -183,13 +240,41 @@ export class PrivacyStorageService {
         reliefPositions: ['Odciążenie Brüggera'],
         stressLevel: 8,
         mood: 'tense',
-        psychosomaticNotes: 'Intensywny dzień przed monitorem, deadline w pracy i wysokie napięcie w barkach.',
+        postureTiltAngleDeg: 38,
+        postureDiagnosis: 'Umiarkowane wysunięcie (Tech-Neck II°)',
+        psychosomaticNotes: 'Pomiar wyjściowy przed terapią. Wyraźne wysunięcie głowy do przodu i silny ucisk podpotyliczny.',
+        aiAnalysis: {
+          riskLevel: 'moderate',
+          urgency: 'routine',
+          primarySuspicion: 'Zaawansowane przeciążenie posturalne karku (Tech-Neck II°)',
+          redFlagsDetected: [],
+          explanation: 'Kąt protrakcji 38° wywołuje stały nacisk ok. 19 kg na dyski C5-C7.',
+          recommendedExercises: ['chin-tuck', 'suboccipital-release', 'brugger-relief'],
+          contraindicatedExercises: ['Gwałtowne krążenia głową'],
+          immediateReliefAdvice: ['Podparcie lędźwiowe i ergonomiczna wysokość monitora'],
+          doctorQuestions: ['Wskazana regularna autoterapia retrakcji brody.']
+        }
+      },
+      {
+        id: 'report-1',
+        date: new Date(Date.now() - 5 * 86400000).toISOString(),
+        vasScore: 5,
+        region: 'nape',
+        character: 'stiff',
+        triggers: ['dluga_praca_przy_komputerze', 'stres'],
+        associatedSymptoms: ['mrowienie_karku'],
+        reliefPositions: ['Odciążenie Brüggera'],
+        stressLevel: 6,
+        mood: 'tense',
+        postureTiltAngleDeg: 27,
+        postureDiagnosis: 'Łagodne wysunięcie (Tech-Neck I°)',
+        psychosomaticNotes: 'Intensywny dzień przed monitorem, ale regularne mikropauzy przynoszą ulgę.',
         aiAnalysis: {
           riskLevel: 'low',
           urgency: 'routine',
-          primarySuspicion: 'Napięcie posturalne odcinka szyjnego z komponentem psychosomatycznym ("Tech-Neck")',
+          primarySuspicion: 'Napięcie posturalne odcinka szyjnego z tendencją do adaptacji',
           redFlagsDetected: [],
-          explanation: 'Wysunięcie głowy do przodu przeciąża mięśnie czworoboczne i stawy międzywyrostkowe C5-C7.',
+          explanation: 'Zmniejszenie kąta do 27° zredukowało obciążenie osiowe karku o ponad 4 kg.',
           recommendedExercises: ['chin-tuck', 'suboccipital-release', 'brugger-relief'],
           contraindicatedExercises: ['Krążenia głową'],
           immediateReliefAdvice: ['Ciepły kompres na kark', 'Uniesienie monitora na wysokość oczu'],
@@ -199,7 +284,7 @@ export class PrivacyStorageService {
       {
         id: 'report-2',
         date: new Date(Date.now() - 1 * 86400000).toISOString(),
-        vasScore: 3,
+        vasScore: 2,
         region: 'neck',
         character: 'dull',
         triggers: ['dluga_praca_przy_komputerze'],
@@ -207,13 +292,15 @@ export class PrivacyStorageService {
         reliefPositions: ['Cofanie brody (Chin tuck)'],
         stressLevel: 3,
         mood: 'calm',
-        psychosomaticNotes: 'Spokojniejszy poranek po dobrze przespanej nocy na ergonomicznej poduszce.',
+        postureTiltAngleDeg: 16,
+        postureDiagnosis: 'Fizjologiczna norma (Oś strzałkowa)',
+        psychosomaticNotes: 'Spokojniejszy poranek po dobrze przespanej nocy na ergonomicznej poduszce. Bardzo dobra postawa.',
         aiAnalysis: {
           riskLevel: 'low',
           urgency: 'routine',
-          primarySuspicion: 'Poprawa adaptacyjna po wdrożeniu ćwiczeń retrakcji szyi i redukcji stresu',
+          primarySuspicion: 'Bardzo dobra poprawa posturalna po wdrożeniu ćwiczeń retrakcji szyi',
           redFlagsDetected: [],
-          explanation: 'Widoczny spadek skali VAS z 6 do 3 pkt wskazuje na wysoką responsywność na ćwiczenia głębokich zginaczy.',
+          explanation: 'Kąt protrakcji 16° zbliża się do fizjologicznego optimum, minimalizując przeciążenie C5-C7 do ok. 10 kg.',
           recommendedExercises: ['chin-tuck', 'isometric-neck', 'brugger-relief'],
           contraindicatedExercises: [],
           immediateReliefAdvice: ['Kontynuacja regularnych przerw co 60 minut.'],

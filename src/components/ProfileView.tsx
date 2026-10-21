@@ -10,6 +10,7 @@ import { AppState, PrivacyStorageService } from '../services/privacyStorage';
 import { evaluateWeeklyChallenges } from '../services/weeklyChallenges';
 import { WeeklyChallenge } from '../types';
 import { CervicalMobilityTestModal } from './CervicalMobilityTestModal';
+import { OfflineBackupManagerCard } from './OfflineBackupManagerCard';
 
 interface Props {
   appState: AppState;
@@ -761,6 +762,12 @@ export const ProfileView: React.FC<Props> = ({
           </button>
         </div>
       </div>
+
+      {/* Local IndexedDB Backups & Offline Data Transfer */}
+      <OfflineBackupManagerCard 
+        appState={appState}
+        onUpdateState={onUpdateState}
+      />
 
       {/* Data Sovereignty & Privacy Section */}
       <div className="p-6 sm:p-8 rounded-3xl bg-slate-900 text-white shadow-xl space-y-4">

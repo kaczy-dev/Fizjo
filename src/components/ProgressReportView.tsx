@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { 
   FileText, Download, TrendingDown, Award, Calendar, 
-  RotateCw, ShieldCheck, Plus, CheckCircle2, Trash2, Upload, Lock, MessageSquare 
+  RotateCw, ShieldCheck, Plus, CheckCircle2, Trash2, Upload, Lock, MessageSquare, Eye, Sparkles 
 } from 'lucide-react';
 import { AppState, PrivacyStorageService } from '../services/privacyStorage';
 import { generateDoctorMedicalPdf, generatePhysiotherapistReportPdf } from '../services/pdfExport';
 import { PainVasProgressChart } from './PainVasProgressChart';
+import { HeadProtractionProgressChart } from './HeadProtractionProgressChart';
+import { PdfReportPreviewModal } from './PdfReportPreviewModal';
 import { PainReport } from '../types';
 
 interface Props {
@@ -15,6 +17,7 @@ interface Props {
 }
 
 export const ProgressReportView: React.FC<Props> = ({ appState, onUpdateState, onNavigateToTriage }) => {
+  const [showPdfPreviewModal, setShowPdfPreviewModal] = useState<boolean>(false);
   const [showMobilityModal, setShowMobilityModal] = useState<boolean>(false);
   const [rotLeft, setRotLeft] = useState<number>(70);
   const [rotRight, setRotRight] = useState<number>(68);
@@ -32,6 +35,40 @@ export const ProgressReportView: React.FC<Props> = ({ appState, onUpdateState, o
 
   const handleDownloadPhysioPdf = () => {
     generatePhysiotherapistReportPdf(appState);
+  };
+
+  const handleAddPostureMeasurement = (angleDeg: number, diagnosis: string) => {
+    const newReport: PainReport = {
+      id: `posture-${Date.now()}`,
+      date: new Date().toISOString(),
+      vasScore: angleDeg > 35 ? 4 : angleDeg > 20 ? 2 : 1,
+      region: 'nape',
+      character: 'stiff',
+      triggers: ['Praca przy biurku / pochylenie w osi strzałkowej'],
+      associatedSymptoms: [],
+      reliefPositions: ['Retrakcja brody (Chin Tuck)'],
+      postureTiltAngleDeg: angleDeg,
+      postureDiagnosis: diagnosis,
+      sessionNotes: `Fotometryczny pomiar kąta protrakcji karku (CVA): ${angleDeg}°. Diagnoza: ${diagnosis}`,
+      aiAnalysis: {
+        riskLevel: angleDeg > 35 ? 'moderate' : 'low',
+        urgency: 'routine',
+        primarySuspicion: `Posturalne wysunięcie głowy: ${diagnosis}`,
+        redFlagsDetected: [],
+        explanation: `Kąt protrakcji ${angleDeg}° generuje ok. ${Math.round(4.5 + (angleDeg / 60) * 22.5)} kg nacisku na kręgi C5-C7.`,
+        recommendedExercises: ['chin-tuck', 'brugger-relief'],
+        contraindicatedExercises: [],
+        immediateReliefAdvice: ['Wycofaj brodę i unieś mostek'],
+        doctorQuestions: []
+      }
+    };
+
+    const updated: AppState = {
+      ...appState,
+      painHistory: [...appState.painHistory, newReport]
+    };
+    onUpdateState(updated);
+    PrivacyStorageService.saveState(updated);
   };
 
   const savePatientInfo = () => {
@@ -156,13 +193,23 @@ export const ProgressReportView: React.FC<Props> = ({ appState, onUpdateState, o
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 shrink-0">
           <button
+            id="preview-session-pain-pdf-btn"
+            type="button"
+            onClick={() => setShowPdfPreviewModal(true)}
+            className="flex items-center justify-center gap-2 px-5 py-3.5 rounded-2xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs sm:text-sm shadow-md hover:shadow-teal-500/25 transition-all cursor-pointer"
+          >
+            <Eye className="w-4 h-4" />
+            <span>Generuj & Podgląd Raportu PDF</span>
+          </button>
+
+          <button
             id="export-physio-pdf-btn"
             type="button"
             onClick={handleDownloadPhysioPdf}
-            className="flex items-center justify-center gap-2 px-5 py-3.5 rounded-2xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs sm:text-sm shadow-md hover:shadow-teal-500/25 transition-all cursor-pointer"
+            className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl border border-teal-200 dark:border-teal-800 bg-teal-50/50 dark:bg-teal-950/40 hover:bg-teal-100 text-teal-800 dark:text-teal-200 font-bold text-xs sm:text-sm transition-all cursor-pointer"
           >
-            <Download className="w-4 h-4" />
-            <span>Raport dla Fizjoterapeuty (PDF)</span>
+            <Download className="w-4 h-4 text-teal-600" />
+            <span>Pobierz dla Fizjoterapeuty</span>
           </button>
 
           <button
@@ -231,6 +278,12 @@ export const ProgressReportView: React.FC<Props> = ({ appState, onUpdateState, o
         activePlanDays={appState.activePlan.days}
         onNavigateToTriage={onNavigateToTriage}
         onAddPainReport={handleAddQuickPainEntry}
+      />
+
+      {/* Head Protraction Progress Chart (Recharts) */}
+      <HeadProtractionProgressChart
+        painHistory={appState.painHistory}
+        onSaveMeasurement={handleAddPostureMeasurement}
       />
 
       {/* Patient Profile Card (to populate on the PDF) */}
@@ -311,15 +364,27 @@ export const ProgressReportView: React.FC<Props> = ({ appState, onUpdateState, o
             </p>
           </div>
 
-          <button
-            id="download-physio-report-card-btn"
-            type="button"
-            onClick={handleDownloadPhysioPdf}
-            className="flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold shadow-md hover:shadow-teal-500/25 transition-all cursor-pointer shrink-0"
-          >
-            <Download className="w-4 h-4" />
-            <span>Pobierz Raport PDF (A4)</span>
-          </button>
+          <div className="flex items-center gap-2 flex-wrap shrink-0">
+            <button
+              id="preview-physio-report-card-btn"
+              type="button"
+              onClick={() => setShowPdfPreviewModal(true)}
+              className="flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-teal-50 dark:bg-teal-950/80 border border-teal-200 dark:border-teal-800 hover:bg-teal-100 dark:hover:bg-teal-900/60 text-teal-700 dark:text-teal-300 text-xs font-bold transition-all cursor-pointer"
+            >
+              <Eye className="w-4 h-4" />
+              <span>Podgląd PDF (Sesje & Ból)</span>
+            </button>
+
+            <button
+              id="download-physio-report-card-btn"
+              type="button"
+              onClick={handleDownloadPhysioPdf}
+              className="flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold shadow-md hover:shadow-teal-500/25 transition-all cursor-pointer shrink-0"
+            >
+              <Download className="w-4 h-4" />
+              <span>Pobierz plik PDF</span>
+            </button>
+          </div>
         </div>
 
         {/* Ostatnie raporty bólu w tabeli podglądu */}
@@ -575,6 +640,13 @@ export const ProgressReportView: React.FC<Props> = ({ appState, onUpdateState, o
           </div>
         </div>
       )}
+
+      {/* PDF Report Interactive Preview Modal */}
+      <PdfReportPreviewModal
+        appState={appState}
+        isOpen={showPdfPreviewModal}
+        onClose={() => setShowPdfPreviewModal(false)}
+      />
     </div>
   );
 };

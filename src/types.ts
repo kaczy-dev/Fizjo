@@ -211,6 +211,15 @@ export interface ReminderConfig {
   activeLifestylePreset?: 'office_standard' | 'office_flexible' | 'early_bird' | 'night_owl' | 'custom';
 }
 
+export interface RestingHeartRateHistoryPoint {
+  date: string; // e.g. "2026-09-15"
+  dayLabel: string; // e.g. "Pn", "Wt", "Śr"
+  restingHeartRate: number; // e.g. 62 BPM
+  avgHeartRate?: number; // e.g. 72 BPM
+  maxHeartRate?: number; // e.g. 118 BPM
+  source?: string;
+}
+
 export interface WearableDevice {
   connected: boolean;
   deviceName?: string;
@@ -220,7 +229,23 @@ export interface WearableDevice {
   activeMinutes?: number;
   sedentaryAlertsCount?: number;
   lastSync?: string;
-  source: 'bluetooth_ble' | 'apple_health' | 'google_fit' | 'garmin' | 'simulated';
+  source: 'bluetooth_ble' | 'apple_health' | 'google_fit' | 'garmin' | 'huawei_health' | 'huawei_ble' | 'simulated';
+  heartRateHistory?: RestingHeartRateHistoryPoint[];
+  autoSyncEnabled?: boolean;
+  heartRateThresholdBpm?: number; // e.g. 120 BPM threshold
+  connectionRssi?: number; // e.g. -62 dBm
+  connectionSignal?: 'excellent' | 'good' | 'fair' | 'poor' | 'disconnected';
+  huaweiDetails?: {
+    modelName?: string;
+    truSeenVersion?: string;
+    firmwareVersion?: string;
+    connectionType?: 'ble_live' | 'health_app_sync' | 'cloud_sync';
+    lastImportedFileName?: string;
+    signalStrength?: 'doskonała' | 'dobra' | 'średnia' | 'słaba';
+    rssi?: number;
+    sensorStatus?: string;
+    autoSyncIntervalMinutes?: number;
+  };
 }
 
 export interface UserHealthProfile {

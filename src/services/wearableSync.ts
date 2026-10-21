@@ -96,16 +96,31 @@ export class WearableSyncService {
     this.hrServer = null;
   }
 
-  // Simulated live sync for testing / non-BLE users
+  // Simulated live sync for testing / non-BLE users with randomized HR and activity level
   public static simulateLiveSync(current: WearableDevice): WearableDevice {
-    const randomBpm = 68 + Math.floor(Math.random() * 14);
-    const addedSteps = Math.floor(Math.random() * 250);
+    // Randomize heart rate between 64 and 92 BPM
+    const randomBpm = 64 + Math.floor(Math.random() * 28);
+    
+    // Randomize activity level:
+    // 1) Active minutes: between 22 and 70 minutes
+    const activeMinutes = 22 + Math.floor(Math.random() * 48);
+    // 2) Today steps: between 4500 and 10800 steps
+    const todaySteps = 4500 + Math.floor(Math.random() * 6300);
+    // 3) Sedentary alerts avoided or triggered (1-4)
+    const sedentaryAlerts = 1 + Math.floor(Math.random() * 4);
+    // 4) Battery percentage
+    const battery = Math.min(100, Math.max(45, (current.batteryLevel || 88) + Math.floor((Math.random() * 6) - 2)));
+
     return {
       ...current,
       connected: true,
+      deviceName: current.deviceName || 'Smartwatch (Symulacja BLE)',
       currentHeartRate: randomBpm,
-      todaySteps: (current.todaySteps || 6000) + addedSteps,
-      batteryLevel: Math.max(20, (current.batteryLevel || 90) - (Math.random() > 0.8 ? 1 : 0)),
+      todaySteps: todaySteps,
+      activeMinutes: activeMinutes,
+      sedentaryAlertsCount: sedentaryAlerts,
+      batteryLevel: battery,
+      source: 'simulated',
       lastSync: new Date().toISOString()
     };
   }

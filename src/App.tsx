@@ -14,6 +14,7 @@ import { MedicalOnboardingModal } from './components/MedicalOnboardingModal';
 import { EmergencyRedFlagsModal } from './components/EmergencyRedFlagsModal';
 import { ClinicalFeedbackModal } from './components/ClinicalFeedbackModal';
 import { PrivacyStorageService, AppState } from './services/privacyStorage';
+import { IndexedDbBackupService } from './services/indexedDbBackup';
 import { evaluateAchievements, INITIAL_ACHIEVEMENTS, Achievement } from './services/achievements';
 import { EXERCISES } from './data/exercises';
 import { Exercise, TrainingDay, PainReport, PatientMood } from './types';
@@ -244,6 +245,30 @@ export default function App() {
     PrivacyStorageService.saveState(newState);
   };
 
+  // Cyclic background backup of application state in IndexedDB (offline, zero-cloud)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // Initial check: if no backup in last 15 minutes, save initial snapshot
+    const initialTimer = setTimeout(() => {
+      const lastBackup = IndexedDbBackupService.getLastBackupTime();
+      const needsInitial = !lastBackup || (Date.now() - new Date(lastBackup).getTime() > 15 * 60 * 1000);
+      if (needsInitial) {
+        IndexedDbBackupService.saveBackup(appState, 'cyclic_auto', 'Początkowa autokopia sesji').catch(() => {});
+      }
+    }, 10000);
+
+    // Periodic cyclic backup every 5 minutes (300,000 ms)
+    const cyclicTimer = setInterval(() => {
+      IndexedDbBackupService.saveBackup(appState, 'cyclic_auto').catch(() => {});
+    }, 300000);
+
+    return () => {
+      clearTimeout(initialTimer);
+      clearInterval(cyclicTimer);
+    };
+  }, [appState]);
+
   // Smart Micro-Break & Browser / PWA Notification System (30-second chin-tuck reminder)
   const {
     isMicroBreakModalOpen,
@@ -366,6 +391,7 @@ export default function App() {
     };
 
     handleUpdateAppState(finalState);
+    IndexedDbBackupService.saveBackup(finalState, 'session_completed').catch(() => {});
 
     // Show achievement celebration toast if new badge unlocked
     if (evalResult.newlyUnlocked.length > 0) {
@@ -593,6 +619,7 @@ export default function App() {
                 profile={appState.profile}
                 medications={appState.medications}
                 reminders={appState.reminders}
+                completedSessionDates={appState.profile.completedSessionDates || []}
                 onToggleCompletedDate={(dateStr) => {
                   const currentDates = appState.profile.completedSessionDates || [];
                   const exists = currentDates.includes(dateStr);
@@ -791,6 +818,9 @@ export default function App() {
           onClose={() => setActiveSessionExercises(null)}
           onComplete={handleCompleteSession}
           wearableHeartRate={appState.wearable.connected ? appState.wearable.currentHeartRate : undefined}
+          heartRateThresholdBpm={appState.wearable.heartRateThresholdBpm || 120}
+          wearableSource={appState.wearable.source}
+          wearableDeviceName={appState.wearable.deviceName}
         />
       )}
 

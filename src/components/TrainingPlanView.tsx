@@ -7,6 +7,7 @@ import { TrainingPlan, Exercise, TrainingDay, PainReport, UserHealthProfile, Rem
 import { EXERCISES } from '../data/exercises';
 import { generateAIPersonalizedPlan } from '../services/trainingPlan';
 import { RehabCalendarTracker } from './RehabCalendarTracker';
+import { CompletedSessionsCalendarGrid } from './CompletedSessionsCalendarGrid';
 import { CervicalMobilityTestModal } from './CervicalMobilityTestModal';
 import { calculatePlanIntensityWithFreeAI, applyIntensityToPlan, PlanIntensityAiResult } from '../services/freePlanIntensityAi';
 import { PlanIntensityAiModal } from './PlanIntensityAiModal';
@@ -23,6 +24,7 @@ interface Props {
   profile?: UserHealthProfile;
   medications?: Medication[];
   reminders?: ReminderConfig;
+  completedSessionDates?: string[];
   onToggleCompletedDate?: (dateStr: string) => void;
   onSaveMobilityTest?: (testData: {
     neckRotationLeftDeg: number;
@@ -41,9 +43,11 @@ export const TrainingPlanView: React.FC<Props> = ({
   profile,
   medications = [],
   reminders,
+  completedSessionDates,
   onToggleCompletedDate,
   onSaveMobilityTest
 }) => {
+  const effectiveCompletedDates = completedSessionDates || profile?.completedSessionDates || [];
   const [planViewMode, setPlanViewMode] = useState<'exercises' | 'calendar'>('exercises');
   const [selectedDayIndex, setSelectedDayIndex] = useState<number>(0);
   const [showConfigModal, setShowConfigModal] = useState<boolean>(false);
@@ -367,7 +371,7 @@ export const TrainingPlanView: React.FC<Props> = ({
             id="plan-view-exercises-btn"
             type="button"
             onClick={() => setPlanViewMode('exercises')}
-            className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+            className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
               planViewMode === 'exercises'
                 ? 'bg-teal-600 text-white shadow-md'
                 : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-700/60'
@@ -381,29 +385,41 @@ export const TrainingPlanView: React.FC<Props> = ({
             id="plan-view-calendar-btn"
             type="button"
             onClick={() => setPlanViewMode('calendar')}
-            className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+            className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
               planViewMode === 'calendar'
                 ? 'bg-teal-600 text-white shadow-md'
                 : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-700/60'
             }`}
           >
             <Calendar className="w-4 h-4" />
-            <span>Kalendarz Sukcesu (Systematyczność)</span>
+            <span>Kalendarz Sesji (Grid View)</span>
           </button>
         </div>
 
         <div className="text-xs text-slate-500 dark:text-slate-400 px-3 hidden md:block font-medium">
-          {planViewMode === 'exercises' ? 'Kolejne dni rehabilitacji i ćwiczenia wideo' : 'Zaznaczone dni ukończonych sesji i passa (streak)'}
+          {planViewMode === 'exercises' ? 'Kolejne dni rehabilitacji i ćwiczenia wideo' : 'Zaznaczone dni ukończonych sesji (completedSessionDates) i passa'}
         </div>
       </div>
 
       {planViewMode === 'calendar' ? (
-        <RehabCalendarTracker
-          plan={plan}
-          profile={profile}
-          completedDates={profile?.completedSessionDates}
-          onToggleDate={onToggleCompletedDate}
-        />
+        <div className="space-y-8">
+          {/* Prosty kalendarz (grid view) zaznaczający dni ukończonych sesji */}
+          <CompletedSessionsCalendarGrid
+            completedSessionDates={effectiveCompletedDates}
+            onToggleCompletedDate={onToggleCompletedDate}
+            onStartSession={() => onStartDaySession(selectedDay, selectedDayExercises)}
+            streakDays={profile?.streakDays ?? defaultProfile.streakDays}
+            totalCompletedSessions={profile?.totalCompletedSessions ?? defaultProfile.totalCompletedSessions}
+          />
+
+          <RehabCalendarTracker
+            plan={plan}
+            profile={profile}
+            completedDates={effectiveCompletedDates}
+            onToggleDate={onToggleCompletedDate}
+            onStartSession={() => onStartDaySession(selectedDay, selectedDayExercises)}
+          />
+        </div>
       ) : (
         <>
           {/* 7-Day Interactive Horizontal Timeline */}
@@ -586,6 +602,15 @@ export const TrainingPlanView: React.FC<Props> = ({
           </div>
         </div>
       </div>
+
+      {/* Prosty kalendarz (grid view) zaznaczający dni, w których użytkownik ukończył sesję ćwiczeń */}
+      <CompletedSessionsCalendarGrid
+        completedSessionDates={effectiveCompletedDates}
+        onToggleCompletedDate={onToggleCompletedDate}
+        onStartSession={() => onStartDaySession(selectedDay, selectedDayExercises)}
+        streakDays={profile?.streakDays ?? defaultProfile.streakDays}
+        totalCompletedSessions={profile?.totalCompletedSessions ?? defaultProfile.totalCompletedSessions}
+      />
       </>
       )}
 
