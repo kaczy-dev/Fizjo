@@ -4,6 +4,57 @@ export type NavTab = 'dashboard' | 'exercises' | 'knowledge' | 'plan' | 'triage'
 
 export type PainIntensity = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
 
+export type VideoHudCategory = 'auto' | 'posture' | 'rom' | 'breathing' | 'mistakes';
+
+export interface VideoPhaseCue {
+  id: 'prepare' | 'concentric' | 'isometric' | 'eccentric';
+  label: string; // e.g. "1. Postawa wyjściowa"
+  shortLabel: string; // e.g. "Postawa"
+  startProgress: number; // 0.0 to 1.0
+  endProgress: number; // 0.0 to 1.0
+  breathAction: 'Wdech nosem' | 'Wydech ustami' | 'Spokojny oddech' | 'Długi wydech';
+  romMetricLabel: string; // e.g. "Oś 0° (Neutralna)" or "Retrakcja -18 mm"
+  primaryCategory: 'posture' | 'rom' | 'breathing' | 'mistakes';
+  hudHeadline: string;
+  hudDetail: string;
+  mistakeAlert?: string;
+}
+
+export interface VideoClinicalCues {
+  posture: {
+    title: string;
+    checkpoints: string[];
+    alignmentVector: string;
+  };
+  rangeOfMotion: {
+    title: string;
+    safeRangeLabel: string;
+    targetAngleOrShift: string;
+    biomechanicalNote: string;
+  };
+  breathing: {
+    title: string;
+    patternLabel: string;
+    inhalePhase: string;
+    exhalePhase: string;
+    clinicalTip: string;
+  };
+  commonMistakes: {
+    mistake: string;
+    consequence: string;
+    correction: string;
+  }[];
+}
+
+export interface VideoInstruction {
+  hdResolutionLabel: string; // e.g. "1080p HD • 60 FPS"
+  cycleSeconds: number;
+  recommendedSlowSpeed: 0.5 | 0.75;
+  cameraAngles: ('sagittal' | 'coronal' | 'split')[];
+  phases: VideoPhaseCue[];
+  clinicalCues: VideoClinicalCues;
+}
+
 export interface Exercise {
   id: string;
   name: string;
@@ -27,6 +78,7 @@ export interface Exercise {
   videoEmbedUrl?: string; // embeddable player url
   videoDuration?: string; // e.g. "2:45 min"
   videoInstructor?: string; // e.g. "Klinika Fizjoterapii"
+  videoInstruction?: VideoInstruction;
 }
 
 export interface DayScheduleItem {
@@ -52,6 +104,105 @@ export interface TrainingDay {
   sessionNotes?: string; // Uwagi pacjenta po zakończeniu sesji dotyczące odczuć podczas konkretnych ćwiczeń
 }
 
+export interface PersonalizedExercisePrescription {
+  exerciseId: string;
+  exerciseName: string;
+  prescribedSets: number;
+  prescribedReps: number;
+  prescribedHoldSeconds: number;
+  prescribedTempo: string;
+  clinicalPriority: 'core_decompression' | 'neuro_mobility' | 'postural_stability' | 'myofascial_release';
+  priorityLabelPl: string;
+  selectionReason: string;
+  safetyModification: string;
+}
+
+export interface ClinicalPersonalizationDiagnostic {
+  computedAt: string;
+  avgVasLast7Days: number;
+  vasTrendDelta: number;
+  dominantPainRegions: string[];
+  dominantPainCharacter: string;
+  detectedClinicalPhenotype:
+    | 'cervical_radiculopathy'
+    | 'cervicogenic_headache'
+    | 'acute_protective_spasm'
+    | 'upper_crossed_tech_neck'
+    | 'axial_cervico_lumbar';
+  phenotypeLabelPl: string;
+  progressionPhase: 'phase_1_acute_relief' | 'phase_2_mobility_restoration' | 'phase_3_deep_stabilization';
+  progressionPhaseLabelPl: string;
+  healthRiskFactors: string[];
+  excludedExercisesWithReasons: {
+    exerciseId: string;
+    exerciseName: string;
+    reason: string;
+  }[];
+  prescribedExercises: PersonalizedExercisePrescription[];
+}
+
+export interface ExerciseExecutionRecord {
+  exerciseId: string;
+  exerciseName: string;
+  targetRegion: SpineRegion;
+  completedSets: number;
+  completedReps: number;
+  holdSecondsAchieved: number;
+  tempoUsed: string;
+  perceivedDifficultyRpe: number; // 1-10 Borg CR10
+  painDuringExerciseVas: number; // 0-10 VAS
+  usedSlowMotionVideo: boolean;
+}
+
+export interface ExerciseSessionHistoryEntry {
+  id: string;
+  timestamp: string;
+  dateStr: string;
+  planId: string;
+  dayIndex: number;
+  dayFocusArea: string;
+  durationMinutes: number;
+  preSessionVas: number;
+  postSessionVas: number;
+  vasDelta: number; // postSessionVas - preSessionVas (negative = pain relief)
+  difficultyLevel: number; // 1-5
+  usedBreathingGuide: boolean;
+  avgHeartRateBpm?: number;
+  patientMood?: PatientMood;
+  stressLevel?: number;
+  sessionNotes?: string;
+  adherenceScorePercent: number;
+  exercisesExecuted: ExerciseExecutionRecord[];
+}
+
+export interface ExerciseMasteryMetric {
+  exerciseId: string;
+  exerciseName: string;
+  sessionsCount: number;
+  totalSetsCompleted: number;
+  totalRepsCompleted: number;
+  totalIsometricHoldSeconds: number;
+  avgVasDelta: number;
+  masteryLevel: 'początkujący' | 'średniozaawansowany' | 'zaawansowany';
+  lastPerformedAt: string;
+}
+
+export interface UserRehabProgressSummary {
+  lastUpdatedAt: string;
+  totalSessionsCompleted: number;
+  totalRepsCompleted: number;
+  totalIsometricMinutes: number;
+  totalRehabMinutes: number;
+  currentStreakDays: number;
+  longestStreakDays: number;
+  meanPreSessionVas: number;
+  meanPostSessionVas: number;
+  meanVasReductionPerSession: number;
+  adherence30DayPercent: number;
+  cromRotationImprovementDeg: number;
+  exerciseMasteryById: Record<string, ExerciseMasteryMetric>;
+}
+
 export interface TrainingPlan {
   id: string;
   title: string;
@@ -68,6 +219,7 @@ export interface TrainingPlan {
   recommendedBreakIntervalMinutes?: number;
   integratedMedicationsSummary?: string;
   dailySchedule?: DayScheduleItem[];
+  personalizationDiagnostic?: ClinicalPersonalizationDiagnostic;
 }
 
 export type KnowledgeArticleCategory =
@@ -135,6 +287,8 @@ export interface PainReport {
   id: string;
   date: string;
   vasScore: number;
+  preSessionVas?: number;
+  postSessionVas?: number;
   region: 'neck' | 'nape' | 'shoulder_blade' | 'radiating_arm' | 'lower_back' | 'headache';
   character: 'sharp' | 'dull' | 'burning' | 'stiff' | 'throbbing';
   triggers: string[];
@@ -280,6 +434,9 @@ export interface UserHealthProfile {
   completedMicroBreaksCount?: number;
   ergonomicAudit?: ErgonomicWorkstationAudit;
   bpsLogs?: BiopsychosocialLog[];
+  heightCm?: number;
+  exerciseHistory?: ExerciseSessionHistoryEntry[];
+  progressSummary?: UserRehabProgressSummary;
 }
 
 export interface ErgonomicWorkstationAudit {

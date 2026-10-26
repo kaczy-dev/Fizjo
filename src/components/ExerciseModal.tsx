@@ -2,17 +2,19 @@ import React, { useState } from 'react';
 import { X, Play, ShieldAlert, CheckCircle2, AlertTriangle, Wind, Target, Stethoscope, Video, ExternalLink, DownloadCloud, Loader2, HardDrive } from 'lucide-react';
 import { Exercise } from '../types';
 import { BiomechanicalAnimator } from './BiomechanicalAnimator';
+import { InstructionalVideoPlayer } from './InstructionalVideoPlayer';
 import { useExerciseCache } from '../hooks/useExerciseCache';
 import { ExerciseOfflineBadge } from './ExerciseOfflineBadge';
 
 interface Props {
   exercise: Exercise | null;
   onClose: () => void;
-  onStartSession: (exercise: Exercise) => void;
+  onStartSession?: (exercise: Exercise) => void;
+  onStartExercise?: (exercise: Exercise) => void;
 }
 
-export const ExerciseModal: React.FC<Props> = ({ exercise, onClose, onStartSession }) => {
-  const [activeMediaTab, setActiveMediaTab] = useState<'animator' | 'video'>('animator');
+export const ExerciseModal: React.FC<Props> = ({ exercise, onClose, onStartSession, onStartExercise }) => {
+  const [activeMediaTab, setActiveMediaTab] = useState<'animator' | 'video'>('video');
   const { isCached, isDownloading, cacheExercise, removeExercise, entries } = useExerciseCache();
 
   if (!exercise) return null;
@@ -30,13 +32,25 @@ export const ExerciseModal: React.FC<Props> = ({ exercise, onClose, onStartSessi
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-xs overflow-y-auto">
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/70 backdrop-blur-xs"
+      onClick={onClose}
+    >
       <div
         id="exercise-details-modal"
-        className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden my-6 max-h-[92vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl border-t sm:border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden max-h-[90dvh] sm:max-h-[92vh] flex flex-col"
       >
+        {/* Mobile Drag Handle */}
+        <div
+          onClick={onClose}
+          className="pt-2.5 pb-1 sm:hidden cursor-pointer shrink-0 bg-slate-50/70 dark:bg-slate-900/80"
+        >
+          <div className="w-10 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto" />
+        </div>
+
         {/* Modal Header */}
-        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/70 dark:bg-slate-900/80">
+        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/70 dark:bg-slate-900/80 shrink-0">
           <div>
             <div className="flex items-center gap-2">
               <span className="text-xs font-semibold text-teal-600 dark:text-teal-400 uppercase tracking-wider">
@@ -121,78 +135,45 @@ export const ExerciseModal: React.FC<Props> = ({ exercise, onClose, onStartSessi
               )}
             </button>
           </div>
-          {/* Media Switcher: Vector Animator vs Video Instruction */}
+          {/* Media Switcher: HD Video with HUD vs Vector Animator */}
           <div>
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-2.5">
               <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl">
                 <button
                   type="button"
+                  onClick={() => setActiveMediaTab('video')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                    activeMediaTab === 'video'
+                      ? 'bg-white dark:bg-slate-900 text-teal-600 dark:text-teal-400 shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                  }`}
+                >
+                  <Video className="w-3.5 h-3.5 text-teal-500" />
+                  <span>Wideo Instruktażowe HD (HUD + Slow-Mo)</span>
+                </button>
+                <button
+                  type="button"
                   onClick={() => setActiveMediaTab('animator')}
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
                     activeMediaTab === 'animator'
                       ? 'bg-white dark:bg-slate-900 text-teal-600 dark:text-teal-400 shadow-xs'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
                   }`}
                 >
                   <Target className="w-3.5 h-3.5" />
-                  <span>Symulacja Biomechaniczna</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveMediaTab('video')}
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
-                    activeMediaTab === 'video'
-                      ? 'bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400 shadow-xs'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-                  }`}
-                >
-                  <Video className="w-3.5 h-3.5 text-rose-500" />
-                  <span>Wideo Instruktażowe HD</span>
+                  <span>Wektor 2D</span>
                 </button>
               </div>
 
-              <span className="text-[11px] text-slate-400 hidden sm:inline">Tempo: {exercise.tempo}</span>
+              <span className="text-[11px] font-mono text-slate-400 hidden sm:inline tabular-nums">
+                Tempo: {exercise.tempo}
+              </span>
             </div>
 
             {activeMediaTab === 'animator' ? (
               <BiomechanicalAnimator exercise={exercise} />
             ) : (
-              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-slate-950 aspect-video flex flex-col items-center justify-center relative">
-                {exercise.videoEmbedUrl ? (
-                  <iframe
-                    src={exercise.videoEmbedUrl}
-                    title={`Wideo instruktażowe: ${exercise.polishName}`}
-                    className="w-full h-full border-0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  />
-                ) : (
-                  <div className="p-6 text-center text-white">
-                    <p className="text-sm font-semibold">{exercise.videoInstructor || 'Instruktaż Kliniczny Fizjoterapii'}</p>
-                    <a
-                      href={exercise.videoUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-all"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                      <span>Otwórz wideo instruktażowe (YouTube)</span>
-                    </a>
-                  </div>
-                )}
-                <div className="w-full bg-slate-900/95 px-4 py-2 flex items-center justify-between text-xs text-slate-300 border-t border-slate-800">
-                  <span>Prowadzący: <strong>{exercise.videoInstructor || 'Klinika Fizjoterapii'}</strong></span>
-                  <a
-                    href={exercise.videoUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-teal-400 hover:text-teal-300 transition-colors"
-                  >
-                    <span>Otwórz w nowej karcie</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                </div>
-              </div>
+              <InstructionalVideoPlayer exercise={exercise} autoPlay={true} compact={false} />
             )}
           </div>
 
@@ -277,18 +258,18 @@ export const ExerciseModal: React.FC<Props> = ({ exercise, onClose, onStartSessi
           )}
         </div>
 
-        {/* Modal Footer */}
-        <div className="p-4 sm:p-5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/90 flex items-center justify-between gap-3">
-          <div className="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">
+        {/* Modal Footer (Sticky Thumb Zone) */}
+        <div className="p-4 sm:p-5 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between gap-3 shrink-0 pb-safe">
+          <div className="text-xs text-slate-500 dark:text-slate-400 hidden sm:block font-mono tabular-nums">
             Standard: {exercise.defaultSets} serie × {exercise.defaultReps} powtórzeń ({exercise.defaultHoldSeconds}s izometrii)
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
             <button
               id="cancel-modal-btn"
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="min-h-[44px] px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
               Zamknij
             </button>
@@ -297,9 +278,10 @@ export const ExerciseModal: React.FC<Props> = ({ exercise, onClose, onStartSessi
               type="button"
               onClick={() => {
                 onClose();
-                onStartSession(exercise);
+                if (onStartSession) onStartSession(exercise);
+                else if (onStartExercise) onStartExercise(exercise);
               }}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold shadow-md hover:shadow-teal-500/25 transition-all"
+              className="flex-1 sm:flex-initial min-h-[44px] flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs sm:text-sm font-bold shadow-md transition-all active:scale-[0.98] cursor-pointer"
             >
               <Play className="w-4 h-4 fill-current" />
               <span>Rozpocznij to ćwiczenie</span>

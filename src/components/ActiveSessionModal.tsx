@@ -11,6 +11,7 @@ import { soundService } from '../services/soundService';
 import { speechService } from '../services/speechService';
 import { ambientSoundscapeService } from '../services/ambientSoundscapeService';
 import { BiomechanicalAnimator } from './BiomechanicalAnimator';
+import { InstructionalVideoPlayer } from './InstructionalVideoPlayer';
 import { BreathingGuide } from './BreathingGuide';
 import { EmergencyRedFlagsModal } from './EmergencyRedFlagsModal';
 import { ClinicalFeedbackModal } from './ClinicalFeedbackModal';
@@ -107,7 +108,7 @@ export const ActiveSessionModal: React.FC<Props> = ({
   const [voiceEnabled, setVoiceEnabled] = useState<boolean>(true);
   const [showBreathingGuide, setShowBreathingGuide] = useState<boolean>(true);
   const [hasUsedBreathing, setHasUsedBreathing] = useState<boolean>(true);
-  const [activeMediaTab, setActiveMediaTab] = useState<'animator' | 'video'>('animator');
+  const [activeMediaTab, setActiveMediaTab] = useState<'animator' | 'video'>('video');
   const [repTimerSeconds, setRepTimerSeconds] = useState<number>(0);
 
   // Active workout heart rate monitoring against user-defined threshold
@@ -256,22 +257,38 @@ export const ActiveSessionModal: React.FC<Props> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/85 backdrop-blur-md">
       <div
         id="active-session-modal-card"
-        className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden my-4 max-h-[95vh] flex flex-col"
+        className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-none sm:rounded-3xl border-0 sm:border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden h-[100dvh] sm:h-auto sm:max-h-[94vh] flex flex-col"
       >
+        {/* Session Progress Bar on Top */}
+        {stage === 'workout' && (
+          <div className="w-full h-1 bg-slate-100 dark:bg-slate-800 shrink-0">
+            <div
+              className="h-full bg-teal-600 dark:bg-teal-400 transition-all duration-300"
+              style={{
+                width: `${Math.min(100, Math.round(((currentExIndex + (currentSet - 1) / Math.max(1, currentExercise.defaultSets)) / Math.max(1, activeExercises.length)) * 100))}%`
+              }}
+            />
+          </div>
+        )}
+
         {/* Top Control Bar */}
-        <div className="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/80 dark:bg-slate-900/80">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-              {stage === 'workout' ? `Ćwiczenie ${currentExIndex + 1} z ${activeExercises.length}` : 'Sesja Rehabilitacyjna'}
+        <div className="px-4 sm:px-5 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-white/95 dark:bg-slate-900/95 shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+              {stage === 'workout'
+                ? `Ćwiczenie ${currentExIndex + 1} z ${activeExercises.length}`
+                : stage === 'pre_vas'
+                ? 'Ocena przed sesją (1/3)'
+                : stage === 'post_vas'
+                ? 'Podsumowanie sesji (3/3)'
+                : 'Ukończono'}
             </span>
             {stage === 'workout' && adaptiveResult.isAdapted && useAdaptiveSelection && (
-              <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wide px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-300 dark:border-rose-800">
-                <ShieldCheck className="w-3 h-3 text-rose-600 dark:text-rose-400" />
-                Tarcza VAS {preVas}
+              <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-semibold text-rose-600 dark:text-rose-400">
+                · Tarcza VAS {preVas}
               </span>
             )}
           </div>
@@ -355,32 +372,52 @@ export const ActiveSessionModal: React.FC<Props> = ({
 
         {/* STAGE 1: PRE-VAS ASSESSMENT */}
         {stage === 'pre_vas' && (
-          <div className="p-6 sm:p-8 flex flex-col items-center text-center space-y-6 flex-1 justify-center">
-            <div className="w-16 h-16 rounded-2xl bg-teal-50 dark:bg-teal-950/60 border border-teal-200 dark:border-teal-800 flex items-center justify-center text-teal-600 dark:text-teal-400">
-              <Sparkles className="w-8 h-8" />
-            </div>
-
-            <div className="max-w-md">
-              <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
+          <div className="p-4 sm:p-7 flex flex-col items-center text-center space-y-5 flex-1 overflow-y-auto">
+            <div className="max-w-md pt-1">
+              <span className="text-xs font-semibold text-teal-600 dark:text-teal-400">
+                Krok 1 · Kalibracja intensywności
+              </span>
+              <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white mt-0.5">
                 Ocena wyjściowa przed ćwiczeniami
               </h2>
-              <p className="text-sm text-slate-600 dark:text-slate-300 mt-2">
-                Jak odczuwasz ból lub sztywność szyi/kręgosłupa w tej chwili? Skala VAS pozwoli zmierzyć obiektywną skuteczność dzisiejszej terapii.
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-1.5">
+                Wskaż aktualne natężenie bólu lub sztywności szyi w skali VAS (0–10), aby dobrać bezpieczne tempo ruchu.
               </p>
             </div>
 
-            {/* VAS Slider */}
-            <div className="w-full max-w-md bg-slate-50 dark:bg-slate-800/60 rounded-2xl p-4 sm:p-5 border border-slate-200 dark:border-slate-700/60 space-y-4 text-left">
+            {/* VAS Slider + Touch Tiles */}
+            <div className="w-full max-w-md bg-slate-50 dark:bg-slate-800/60 rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-700/60 space-y-4 text-left">
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                    Ból i sztywność (skala VAS 0-10):
+                    Ból i sztywność (skala VAS 0–10):
                   </span>
-                  <span className={`text-xl font-black font-mono ${
-                    preVas <= 3 ? 'text-emerald-500' : preVas <= 6 ? 'text-amber-500' : 'text-rose-500'
+                  <span className={`text-xl font-black font-mono tabular-nums ${
+                    preVas <= 3 ? 'text-emerald-600 dark:text-emerald-400' : preVas <= 6 ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'
                   }`}>
                     {preVas} / 10
                   </span>
+                </div>
+
+                <div className="grid grid-cols-11 gap-1 mb-2.5">
+                  {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setPreVas(v)}
+                      className={`min-h-[38px] rounded-lg font-mono text-xs font-bold transition-all cursor-pointer ${
+                        preVas === v
+                          ? v <= 3
+                            ? 'bg-emerald-600 text-white shadow-xs scale-105'
+                            : v <= 6
+                            ? 'bg-amber-500 text-white shadow-xs scale-105'
+                            : 'bg-rose-600 text-white shadow-xs scale-105'
+                          : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+                      }`}
+                    >
+                      {v}
+                    </button>
+                  ))}
                 </div>
 
                 <input
@@ -395,9 +432,9 @@ export const ActiveSessionModal: React.FC<Props> = ({
                 />
 
                 <div className="flex justify-between text-[10px] text-slate-400 mt-1">
-                  <span>0 - Brak bólu</span>
-                  <span>5 - Umiarkowany</span>
-                  <span>10 - Bardzo silny</span>
+                  <span>0 · Brak bólu</span>
+                  <span>5 · Umiarkowany</span>
+                  <span>10 · Bardzo silny</span>
                 </div>
               </div>
 
@@ -727,36 +764,38 @@ export const ActiveSessionModal: React.FC<Props> = ({
             {/* Ambient Soundscape Player (Nature Sounds, Binaural Beats for Focus) */}
             <AmbientSoundscapePlayer />
 
-            {/* Media Mode Tabs: Biomechanical Animation vs Video HD */}
+            {/* Media Mode Tabs: Video HD with HUD vs Biomechanical Vector */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl">
                 <button
                   type="button"
+                  onClick={() => setActiveMediaTab('video')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                    activeMediaTab === 'video'
+                      ? 'bg-white dark:bg-slate-900 text-teal-600 dark:text-teal-400 shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                  }`}
+                >
+                  <Video className="w-3.5 h-3.5 text-teal-500" />
+                  <span>Wideo Instruktażowe HD (HUD + Pętla)</span>
+                </button>
+                <button
+                  type="button"
                   onClick={() => setActiveMediaTab('animator')}
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
                     activeMediaTab === 'animator'
                       ? 'bg-white dark:bg-slate-900 text-teal-600 dark:text-teal-400 shadow-xs'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
                   }`}
                 >
                   <Target className="w-3.5 h-3.5" />
-                  <span>Wektor Ruchu</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveMediaTab('video')}
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
-                    activeMediaTab === 'video'
-                      ? 'bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400 shadow-xs'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-                  }`}
-                >
-                  <Video className="w-3.5 h-3.5 text-rose-500" />
-                  <span>Wideo HD</span>
+                  <span>Wektor 2D</span>
                 </button>
               </div>
 
-              <span className="text-[11px] text-slate-400">Tempo bazowe: {currentExercise.tempo}</span>
+              <span className="text-[11px] font-mono text-slate-400 tabular-nums">
+                Tempo bazowe: {currentExercise.tempo}
+              </span>
             </div>
 
             {/* Video & Vector Animator Display */}
@@ -767,43 +806,12 @@ export const ActiveSessionModal: React.FC<Props> = ({
                 customCycleDurationMs={currentDifficulty.cycleDurationMs}
               />
             ) : (
-              <div className="space-y-2">
-                <div className="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-slate-950 aspect-video flex flex-col items-center justify-center relative">
-                  {currentExercise.videoEmbedUrl ? (
-                    <iframe
-                      src={currentExercise.videoEmbedUrl}
-                      title={`Wideo: ${currentExercise.polishName}`}
-                      className="w-full h-full border-0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    />
-                  ) : (
-                    <div className="p-6 text-center text-white">
-                      <p className="text-sm font-semibold">{currentExercise.videoInstructor || 'Instruktaż Kliniczny'}</p>
-                      <a
-                        href={currentExercise.videoUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-all"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                        <span>Otwórz wideo instruktażowe</span>
-                      </a>
-                    </div>
-                  )}
-                </div>
-
-                {/* Real-time Video Pacing & Hold Guide based on Difficulty */}
-                <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800/80 text-xs border border-slate-200 dark:border-slate-700/60">
-                  <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
-                    <Sliders className="w-3.5 h-3.5 text-teal-600" />
-                    <span>Dopasowane tempo wideo ({currentDifficulty.label}):</span>
-                  </div>
-                  <span className="font-bold text-teal-600 dark:text-teal-400 font-mono">
-                    {(currentDifficulty.cycleDurationMs / 1000).toFixed(1)}s na pełne powtórzenie
-                  </span>
-                </div>
-              </div>
+              <InstructionalVideoPlayer
+                exercise={currentExercise}
+                autoPlay={!isPaused}
+                customCycleDurationMs={currentDifficulty.cycleDurationMs}
+                compact={false}
+              />
             )}
 
             {/* Visual Breathing Guide with Animated Circle */}
@@ -818,31 +826,43 @@ export const ActiveSessionModal: React.FC<Props> = ({
             )}
 
             {/* Sets & Reps Counter */}
-            <div className="grid grid-cols-3 gap-3">
-              <div className="bg-slate-50 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-800 rounded-xl p-3 text-center">
+            <div className="grid grid-cols-3 gap-2.5">
+              <div className="bg-slate-50 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-2.5 sm:p-3 text-center">
                 <span className="text-[11px] text-slate-500 font-medium">Seria</span>
-                <div className="text-lg font-black text-slate-900 dark:text-white font-mono mt-0.5">
+                <div className="text-base sm:text-lg font-black text-slate-900 dark:text-white font-mono tabular-nums mt-0.5">
                   {currentSet} / {currentExercise.defaultSets}
                 </div>
               </div>
 
-              <div className="bg-slate-50 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-800 rounded-xl p-3 text-center">
+              <div className="bg-slate-50 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-2.5 sm:p-3 text-center">
                 <span className="text-[11px] text-slate-500 font-medium">Powtórzenie</span>
-                <div className="text-lg font-black text-teal-600 dark:text-teal-400 font-mono mt-0.5">
+                <div className="text-base sm:text-lg font-black text-teal-600 dark:text-teal-400 font-mono tabular-nums mt-0.5">
                   {currentRep} / {currentExercise.defaultReps}
                 </div>
               </div>
 
-              <div className="bg-slate-50 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-800 rounded-xl p-3 text-center">
+              <div className="bg-slate-50 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-2.5 sm:p-3 text-center">
                 <span className="text-[11px] text-slate-500 font-medium">Czas sesji</span>
-                <div className="text-lg font-black text-slate-900 dark:text-white font-mono mt-0.5">
+                <div className="text-base sm:text-lg font-black text-slate-900 dark:text-white font-mono tabular-nums mt-0.5">
                   {formatTime(sessionElapsedSeconds)}
                 </div>
               </div>
             </div>
 
-            {/* Action Bar for workout controls */}
-            <div className="pt-2 flex items-center justify-between gap-3">
+            {/* Sticky Thumb-Zone Action Bar for Workout Controls */}
+            <div className="sticky bottom-0 -mx-5 sm:-mx-6 -mb-5 sm:-mb-6 px-4 py-3.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-2.5 pb-safe">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsPaused(!isPaused);
+                  soundService.playTick();
+                }}
+                className="min-h-[48px] px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all cursor-pointer"
+              >
+                {isPaused ? <Play className="w-4 h-4 fill-current text-teal-600" /> : <Pause className="w-4 h-4" />}
+                <span>{isPaused ? 'Wznów' : 'Pauza'}</span>
+              </button>
+
               <button
                 id="add-rep-btn"
                 type="button"
@@ -858,19 +878,19 @@ export const ActiveSessionModal: React.FC<Props> = ({
                     handleNextExerciseOrFinish();
                   }
                 }}
-                className="flex-1 py-3 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs shadow-md transition-colors flex items-center justify-center gap-1.5"
+                className="flex-1 min-h-[48px] px-4 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs sm:text-sm shadow-md transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer"
               >
-                <CheckCircle2 className="w-4 h-4" />
-                <span>Zalicz powtórzenie ({currentRep}/{currentExercise.defaultReps})</span>
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
+                <span className="truncate">Zalicz powtórzenie ({currentRep}/{currentExercise.defaultReps})</span>
               </button>
 
               <button
                 id="next-exercise-btn"
                 type="button"
                 onClick={handleNextExerciseOrFinish}
-                className="px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-xs transition-colors flex items-center gap-1.5"
+                className="min-h-[48px] px-4 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
               >
-                <span>{currentExIndex < activeExercises.length - 1 ? 'Następne' : 'Zakończ'}</span>
+                <span>{currentExIndex < activeExercises.length - 1 ? 'Dalej' : 'Koniec'}</span>
                 <SkipForward className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -879,29 +899,49 @@ export const ActiveSessionModal: React.FC<Props> = ({
 
         {/* STAGE 3: POST-VAS ASSESSMENT */}
         {stage === 'post_vas' && (
-          <div className="p-6 sm:p-8 flex flex-col items-center text-center space-y-6 flex-1 justify-center">
-            <div className="w-16 h-16 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-              <CheckCircle2 className="w-8 h-8" />
-            </div>
-
-            <div className="max-w-md">
-              <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
+          <div className="p-4 sm:p-7 flex flex-col items-center text-center space-y-5 flex-1 overflow-y-auto">
+            <div className="max-w-md pt-1">
+              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                Krok 3 · Odpowiedź terapeutyczna
+              </span>
+              <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white mt-0.5">
                 Ocena skuteczności po sesji
               </h2>
-              <p className="text-sm text-slate-600 dark:text-slate-300 mt-2">
-                Jak odczuwasz ból karku i kręgosłupa bezpośrednio po wykonaniu ćwiczeń?
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-1.5">
+                Jak odczuwasz napięcie karku i kręgosłupa bezpośrednio po wykonaniu ćwiczeń?
               </p>
             </div>
 
-            {/* VAS Comparison */}
-            <div className="w-full max-w-md bg-slate-50 dark:bg-slate-800/60 rounded-2xl p-5 border border-slate-200 dark:border-slate-700/60">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-semibold text-slate-500">Skala VAS po ćwiczeniach:</span>
-                <span className={`text-2xl font-black font-mono ${
-                  postVas <= 3 ? 'text-emerald-500' : postVas <= 6 ? 'text-amber-500' : 'text-rose-500'
+            {/* VAS Comparison + Touch Tiles */}
+            <div className="w-full max-w-md bg-slate-50 dark:bg-slate-800/60 rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-700/60">
+              <div className="flex items-center justify-between mb-2.5">
+                <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">Skala VAS po ćwiczeniach:</span>
+                <span className={`text-2xl font-black font-mono tabular-nums ${
+                  postVas <= 3 ? 'text-emerald-600 dark:text-emerald-400' : postVas <= 6 ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'
                 }`}>
                   {postVas} / 10
                 </span>
+              </div>
+
+              <div className="grid grid-cols-11 gap-1 mb-2.5">
+                {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => setPostVas(v)}
+                    className={`min-h-[38px] rounded-lg font-mono text-xs font-bold transition-all cursor-pointer ${
+                      postVas === v
+                        ? v <= 3
+                          ? 'bg-emerald-600 text-white shadow-xs scale-105'
+                          : v <= 6
+                          ? 'bg-amber-500 text-white shadow-xs scale-105'
+                          : 'bg-rose-600 text-white shadow-xs scale-105'
+                        : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+                    }`}
+                  >
+                    {v}
+                  </button>
+                ))}
               </div>
 
               <input
@@ -915,10 +955,10 @@ export const ActiveSessionModal: React.FC<Props> = ({
                 className="w-full h-2.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-600"
               />
 
-              <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs">
+              <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs font-mono tabular-nums">
                 <span className="text-slate-500">Przed: {preVas} VAS</span>
-                <span className="font-bold text-emerald-600 dark:text-emerald-400">
-                  {preVas - postVas > 0 ? `Spadek bólu o ${preVas - postVas} pkt! 🎉` : preVas === postVas ? 'Ból stabilny' : 'Lekkie zaostrzenie'}
+                <span className="font-sans font-bold text-emerald-600 dark:text-emerald-400">
+                  {preVas - postVas > 0 ? `Ulga o ${preVas - postVas} pkt VAS` : preVas === postVas ? 'Poziom stabilny' : 'Lekkie zaostrzenie'}
                 </span>
                 <span className="text-slate-500">Po: {postVas} VAS</span>
               </div>

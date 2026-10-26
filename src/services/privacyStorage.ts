@@ -1,5 +1,9 @@
 import { UserHealthProfile, TrainingPlan, PainReport, Medication, ReminderConfig, WearableDevice } from '../types';
-import { generatePersonalizedPlan } from './trainingPlan';
+import {
+  generatePersonalizedPlan,
+  createDefaultExerciseHistory,
+  computeUserRehabProgressSummary
+} from './trainingPlan';
 import { Achievement, INITIAL_ACHIEVEMENTS } from './achievements';
 
 const STORAGE_KEY = 'fizjo_rehab_medical_data_v1';
@@ -54,7 +58,8 @@ const DEFAULT_PROFILE: UserHealthProfile = {
       neckFlexionCm: 1.5,
       neckExtensionDeg: 65
     }
-  ]
+  ],
+  exerciseHistory: createDefaultExerciseHistory()
 };
 
 const DEFAULT_MEDICATIONS: Medication[] = [
@@ -186,8 +191,21 @@ export class PrivacyStorageService {
             : generateDefaultHeartRateHistory()
         };
 
+        const mergedProfile: UserHealthProfile = {
+          ...DEFAULT_PROFILE,
+          ...parsed.profile,
+          exerciseHistory:
+            parsed.profile?.exerciseHistory && parsed.profile.exerciseHistory.length > 0
+              ? parsed.profile.exerciseHistory
+              : DEFAULT_PROFILE.exerciseHistory
+        };
+        mergedProfile.progressSummary = computeUserRehabProgressSummary(
+          mergedProfile,
+          mergedProfile.exerciseHistory || []
+        );
+
         return {
-          profile: { ...DEFAULT_PROFILE, ...parsed.profile },
+          profile: mergedProfile,
           activePlan: parsed.activePlan || generatePersonalizedPlan({ primaryProblem: 'tech_neck', workType: 'desk', dailyMinutes: 10, baselineVas: 4 }),
           painHistory: loadedPainHistory,
           medications: Array.isArray(parsed.medications) ? parsed.medications : DEFAULT_MEDICATIONS,
@@ -230,9 +248,35 @@ export class PrivacyStorageService {
 
     const samplePainReports: PainReport[] = [
       {
+        id: 'report-prev-month',
+        date: new Date(Date.now() - 38 * 86400000).toISOString(),
+        vasScore: 7,
+        region: 'nape',
+        character: 'sharp',
+        triggers: ['dluga_praca_przy_komputerze', 'stres'],
+        associatedSymptoms: ['bol_glowy', 'sztywnosc_poranna'],
+        reliefPositions: ['Pozycja leżąca na plecach'],
+        stressLevel: 8,
+        mood: 'tense',
+        postureTiltAngleDeg: 40,
+        postureDiagnosis: 'Zaawansowane wysunięcie głowy (Tech-Neck II°)',
+        psychosomaticNotes: 'Pomiar z poprzedniego miesiąca przed rozpoczęciem systematycznej rehabilitacji.',
+        aiAnalysis: {
+          riskLevel: 'moderate',
+          urgency: 'routine',
+          primarySuspicion: 'Przewlekłe przeciążenie mięśni podpotylicznych i dźwigacza łopatki',
+          redFlagsDetected: [],
+          explanation: 'Wysoki poziom bólu wyjściowego (7/10 VAS) związany z wielogodzinną pracą przy komputerze.',
+          recommendedExercises: ['chin-tuck', 'brugger-relief'],
+          contraindicatedExercises: ['Gwałtowne krążenia głową'],
+          immediateReliefAdvice: ['Odpoczynek od ekranu i korekta wysokości monitora'],
+          doctorQuestions: ['Wskazana ocena ergonomii pracy i regularna kinezjoterapia.']
+        }
+      },
+      {
         id: 'report-baseline',
         date: new Date(Date.now() - 14 * 86400000).toISOString(),
-        vasScore: 7,
+        vasScore: 6,
         region: 'nape',
         character: 'stiff',
         triggers: ['dluga_praca_przy_komputerze', 'stres'],

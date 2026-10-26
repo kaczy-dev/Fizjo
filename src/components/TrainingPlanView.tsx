@@ -14,6 +14,8 @@ import { PlanIntensityAiModal } from './PlanIntensityAiModal';
 import { generatePhysiotherapistReportPdf } from '../services/pdfExport';
 import { useExerciseCache } from '../hooks/useExerciseCache';
 import { ExerciseOfflineBadge } from './ExerciseOfflineBadge';
+import { InstructionalVideoPlayer } from './InstructionalVideoPlayer';
+import { PersonalizedPlanArchitectCard } from './PersonalizedPlanArchitectCard';
 
 interface Props {
   plan: TrainingPlan;
@@ -56,6 +58,7 @@ export const TrainingPlanView: React.FC<Props> = ({
   const [aiNotice, setAiNotice] = useState<string | null>(null);
   const [showAiIntensityModal, setShowAiIntensityModal] = useState<boolean>(false);
   const [aiIntensityResult, setAiIntensityResult] = useState<PlanIntensityAiResult | null>(null);
+  const [previewVideoExerciseId, setPreviewVideoExerciseId] = useState<string | null>(null);
   const { isCached, isDownloading, cacheExercise, removeExercise, entries } = useExerciseCache();
 
   // Questionnaire local state for regenerating plan
@@ -314,6 +317,17 @@ export const TrainingPlanView: React.FC<Props> = ({
         )}
       </div>
 
+      {/* Clinical Personalization Engine & Exercise History / Progress Data Module */}
+      <PersonalizedPlanArchitectCard
+        plan={plan}
+        painHistory={painHistory}
+        profile={defaultProfile}
+        reminders={defaultReminders}
+        medications={medications}
+        onUpdatePlan={onUpdatePlan}
+        onOpenExerciseDetails={onOpenExerciseDetails}
+      />
+
       {/* Daily Routine Schedule with Reminders & Medications */}
       {plan.dailySchedule && plan.dailySchedule.length > 0 && (
         <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-3xl p-6 shadow-xs space-y-4">
@@ -537,68 +551,96 @@ export const TrainingPlanView: React.FC<Props> = ({
           </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {selectedDayExercises.map((exercise, index) => (
-              <div
-                key={exercise.id}
-                className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 flex flex-col justify-between space-y-3"
-              >
-                <div>
-                  <div className="flex items-center justify-between text-xs mb-1.5">
-                    <span className="text-teal-600 dark:text-teal-400 font-bold">Krok {index + 1}</span>
-                    <div className="flex items-center gap-1.5">
-                      <ExerciseOfflineBadge
-                        exercise={exercise}
-                        isCached={isCached(exercise.id)}
-                        isDownloading={isDownloading(exercise.id)}
-                        sizeKb={entries[exercise.id]?.sizeKb}
-                        onToggleCache={(ex) => {
-                          if (isCached(ex.id)) {
-                            removeExercise(ex.id);
-                          } else {
-                            cacheExercise(ex);
-                          }
-                        }}
-                        compact
-                      />
-                      <span className="text-[11px] text-slate-600 dark:text-slate-400">{exercise.difficulty}</span>
+            {selectedDayExercises.map((exercise, index) => {
+              const isVideoPreviewOpen = previewVideoExerciseId === exercise.id;
+              return (
+                <div
+                  key={exercise.id}
+                  className={`p-4 rounded-2xl border transition-all flex flex-col justify-between space-y-3 ${
+                    isVideoPreviewOpen
+                      ? 'md:col-span-3 border-teal-500/80 bg-slate-50 dark:bg-slate-800/80 shadow-md'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40'
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between text-xs mb-1.5">
+                      <span className="text-teal-600 dark:text-teal-400 font-bold">Krok {index + 1}</span>
+                      <div className="flex items-center gap-1.5">
+                        <ExerciseOfflineBadge
+                          exercise={exercise}
+                          isCached={isCached(exercise.id)}
+                          isDownloading={isDownloading(exercise.id)}
+                          sizeKb={entries[exercise.id]?.sizeKb}
+                          onToggleCache={(ex) => {
+                            if (isCached(ex.id)) {
+                              removeExercise(ex.id);
+                            } else {
+                              cacheExercise(ex);
+                            }
+                          }}
+                          compact
+                        />
+                        <span className="text-[11px] text-slate-600 dark:text-slate-400">{exercise.difficulty}</span>
+                      </div>
+                    </div>
+                    <h4 className="font-bold text-sm text-slate-900 dark:text-white">
+                      {exercise.polishName}
+                    </h4>
+                    <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 line-clamp-2">
+                      {exercise.description}
+                    </p>
+
+                    {/* Clean unboxed clinical metadata */}
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 font-mono tabular-nums">
+                      <span>{exercise.defaultSets}×{exercise.defaultReps} powt.</span>
+                      <span aria-hidden="true">·</span>
+                      <span>Izometria {exercise.defaultHoldSeconds}s</span>
+                      <span aria-hidden="true">·</span>
+                      <span>Tempo {exercise.tempo}</span>
                     </div>
                   </div>
-                  <h4 className="font-bold text-sm text-slate-900 dark:text-white">
-                    {exercise.polishName}
-                  </h4>
-                  <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 line-clamp-2">
-                    {exercise.description}
-                  </p>
-                </div>
 
-                <div className="pt-2 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between gap-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] text-slate-600 dark:text-slate-400 hidden sm:inline">
-                      {exercise.defaultSets}×{exercise.defaultReps}
-                    </span>
-                    <a
-                      href={exercise.videoUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-[11px] text-rose-600 dark:text-rose-400 font-bold hover:underline"
-                      title="Zobacz wideo instruktażowe na YouTube"
+                  {/* Inline Quick HD Video Player with HUD, Slow-Mo & Loop */}
+                  {isVideoPreviewOpen && (
+                    <div className="pt-2">
+                      <InstructionalVideoPlayer
+                        exercise={exercise}
+                        autoPlay={true}
+                        compact={true}
+                        onOpenFullDetails={onOpenExerciseDetails}
+                      />
+                    </div>
+                  )}
+
+                  <div className="pt-2 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between gap-2">
+                    <button
+                      id={`quick-video-plan-btn-${exercise.id}`}
+                      type="button"
+                      onClick={() =>
+                        setPreviewVideoExerciseId(isVideoPreviewOpen ? null : exercise.id)
+                      }
+                      className={`min-h-[38px] px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap ${
+                        isVideoPreviewOpen
+                          ? 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-100'
+                          : 'bg-teal-600/10 hover:bg-teal-600/20 text-teal-700 dark:text-teal-300 border border-teal-500/30'
+                      }`}
                     >
-                      <Video className="w-3 h-3" />
-                      <span>Wideo HD</span>
-                    </a>
-                  </div>
+                      <Video className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+                      <span>{isVideoPreviewOpen ? 'Zwiń podgląd HD' : 'Szybki podgląd Wideo HD'}</span>
+                    </button>
 
-                  <button
-                    id={`preview-plan-ex-btn-${exercise.id}`}
-                    type="button"
-                    onClick={() => onOpenExerciseDetails(exercise)}
-                    className="text-xs font-semibold text-teal-600 dark:text-teal-400 hover:underline"
-                  >
-                    Technika →
-                  </button>
+                    <button
+                      id={`preview-plan-ex-btn-${exercise.id}`}
+                      type="button"
+                      onClick={() => onOpenExerciseDetails(exercise)}
+                      className="min-h-[38px] px-2.5 py-1.5 text-xs font-semibold text-teal-600 dark:text-teal-400 hover:underline cursor-pointer whitespace-nowrap"
+                    >
+                      Pełny instruktaż →
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>

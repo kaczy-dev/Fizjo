@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Header, NavTab } from './components/Header';
+import { MobileBottomNav } from './components/MobileBottomNav';
 import { DashboardView } from './components/DashboardView';
 import { ExerciseCatalogView } from './components/ExerciseCatalogView';
 import { TrainingPlanView } from './components/TrainingPlanView';
@@ -16,8 +17,9 @@ import { ClinicalFeedbackModal } from './components/ClinicalFeedbackModal';
 import { PrivacyStorageService, AppState } from './services/privacyStorage';
 import { IndexedDbBackupService } from './services/indexedDbBackup';
 import { evaluateAchievements, INITIAL_ACHIEVEMENTS, Achievement } from './services/achievements';
+import { computeUserRehabProgressSummary, createDefaultExerciseHistory } from './services/trainingPlan';
 import { EXERCISES } from './data/exercises';
-import { Exercise, TrainingDay, PainReport, PatientMood } from './types';
+import { Exercise, TrainingDay, PainReport, PatientMood, ExerciseSessionHistoryEntry } from './types';
 import { ShieldCheck, Trophy, Sparkles, Bell, Clock, Zap, Sun, Moon, Laptop } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { OfflineIndicator } from './components/OfflineIndicator';
@@ -337,7 +339,9 @@ export default function App() {
     const sessionReport: PainReport = {
       id: `session-vas-${Date.now()}`,
       date: todayStr,
-      vasScore: stats.preVas,
+      vasScore: stats.postVas,
+      preSessionVas: stats.preVas,
+      postSessionVas: stats.postVas,
       region: 'neck',
       character: stats.preVas <= 3 ? 'dull' : stats.preVas <= 6 ? 'stiff' : 'sharp',
       triggers: ['Praca przy biurku', 'Trening karku'],
@@ -362,6 +366,62 @@ export default function App() {
       }
     };
 
+    // Build structured ExerciseSessionHistoryEntry for longitudinal progress tracking
+    const sessionExercisesList = activeSessionExercises && activeSessionExercises.length > 0
+      ? activeSessionExercises
+      : EXERCISES.slice(0, 3);
+
+    const newSessionEntry: ExerciseSessionHistoryEntry = {
+      id: `session-hist-${Date.now()}`,
+      timestamp: todayStr,
+      dateStr: todayDateOnly,
+      planId: appState.activePlan.id,
+      dayIndex: activeSessionDay ? activeSessionDay.dayIndex : 0,
+      dayFocusArea: activeSessionDay ? activeSessionDay.focusArea : 'Sesja celowana karku i kręgosłupa',
+      durationMinutes: Math.max(1, stats.durationMinutes),
+      preSessionVas: stats.preVas,
+      postSessionVas: stats.postVas,
+      vasDelta: stats.postVas - stats.preVas,
+      difficultyLevel: stats.difficultyLevel || 3,
+      usedBreathingGuide: stats.usedBreathingGuide,
+      avgHeartRateBpm: appState.wearable.currentHeartRate || 70,
+      patientMood: stats.mood ?? 'neutral',
+      stressLevel: stats.stressLevel ?? 4,
+      sessionNotes: noteToStore,
+      adherenceScorePercent: 100,
+      exercisesExecuted: sessionExercisesList.map((ex) => ({
+        exerciseId: ex.id,
+        exerciseName: ex.polishName,
+        targetRegion: ex.region,
+        completedSets: ex.defaultSets,
+        completedReps: ex.defaultReps,
+        holdSecondsAchieved: ex.defaultHoldSeconds,
+        tempoUsed: ex.tempo,
+        perceivedDifficultyRpe: Math.min(10, Math.max(1, (stats.difficultyLevel || 3) + 1)),
+        painDuringExerciseVas: stats.postVas,
+        usedSlowMotionVideo: true
+      }))
+    };
+
+    const existingExerciseHistory =
+      appState.profile.exerciseHistory && appState.profile.exerciseHistory.length > 0
+        ? appState.profile.exerciseHistory
+        : createDefaultExerciseHistory(appState.activePlan.id);
+
+    const updatedExerciseHistory = [newSessionEntry, ...existingExerciseHistory];
+    const updatedProfileDraft = {
+      ...appState.profile,
+      completedSessionDates: updatedDates,
+      totalCompletedSessions: newCompletedCount,
+      streakDays: newStreak,
+      lastActiveDate: todayDateOnly,
+      exerciseHistory: updatedExerciseHistory
+    };
+    const updatedProgressSummary = computeUserRehabProgressSummary(
+      updatedProfileDraft,
+      updatedExerciseHistory
+    );
+
     const interimState: AppState = {
       ...appState,
       painHistory: [sessionReport, ...appState.painHistory],
@@ -370,11 +430,8 @@ export default function App() {
         days: updatedDays
       },
       profile: {
-        ...appState.profile,
-        completedSessionDates: updatedDates,
-        totalCompletedSessions: newCompletedCount,
-        streakDays: newStreak,
-        lastActiveDate: todayDateOnly
+        ...updatedProfileDraft,
+        progressSummary: updatedProgressSummary
       }
     };
 
@@ -434,10 +491,41 @@ export default function App() {
   };
 
   const unlockedMedalsCount = (appState.achievements || INITIAL_ACHIEVEMENTS).filter(a => a.unlocked).length;
+  const todayDayIndex = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
+  const todayPlanDay = appState.activePlan.days[todayDayIndex] || appState.activePlan.days[0];
+  const todayExercises = EXERCISES.filter(e => todayPlanDay?.exerciseIds.includes(e.id));
+
+  const handleQuickSaveVas = (vasScore: number, trigger: string, note?: string) => {
+    const newReport: PainReport = {
+      id: `quick-vas-${Date.now()}`,
+      date: new Date().toISOString(),
+      vasScore,
+      region: 'neck',
+      character: vasScore <= 3 ? 'dull' : vasScore <= 6 ? 'stiff' : 'sharp',
+      triggers: [trigger],
+      associatedSymptoms: note ? [note] : [],
+      reliefPositions: ['Retrakcja brody (Chin Tuck)', 'Pozycja Brüggera'],
+      aiAnalysis: {
+        riskLevel: vasScore <= 3 ? 'low' : vasScore <= 6 ? 'moderate' : 'high_consult_doctor',
+        urgency: vasScore >= 7 ? 'urgent_medical_review' : 'routine',
+        primarySuspicion: note || (vasScore <= 3 ? 'Niewielkie napięcie mięśniowe' : vasScore <= 6 ? 'Przeciążenie posturalne karku' : 'Zaostrzenie dolegliwości bólowych'),
+        redFlagsDetected: [],
+        explanation: `Szybki pomiar zarejestrowany w skali VAS: ${vasScore}/10. Wyzwalacz: ${trigger}.`,
+        recommendedExercises: ['chin-tuck', 'brugger-relief', 'trapezius-upper-stretch'],
+        contraindicatedExercises: [],
+        immediateReliefAdvice: ['Wykonaj 5 powolnych retrakcji brody', 'Zrób 30-sekundową mikro-przerwę'],
+        doctorQuestions: []
+      }
+    };
+    handleUpdateAppState({
+      ...appState,
+      painHistory: [newReport, ...appState.painHistory]
+    });
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-200 selection:bg-teal-500 selection:text-white">
-      {/* Header with Gov-style branding, Navigation & Dark Mode Toggle */}
+      {/* Header with Clinical Minimalist Branding, Navigation & Dark Mode Toggle */}
       <Header
         activeTab={activeTab}
         onSelectTab={setActiveTab}
@@ -451,17 +539,17 @@ export default function App() {
 
       {/* Achievement Unlocked Toast */}
       {newlyUnlockedToast && (
-        <div className="fixed top-20 right-4 sm:right-6 z-50 animate-bounce">
-          <div className="bg-gradient-to-r from-amber-500 to-teal-600 text-white p-4 rounded-2xl shadow-2xl flex items-center gap-3 border border-white/20">
-            <div className="p-2 bg-white/20 rounded-xl">
-              <Trophy className="w-6 h-6 text-yellow-200" />
+        <div className="fixed top-16 right-4 sm:right-6 z-50">
+          <div className="bg-slate-900 dark:bg-slate-800 text-white p-4 rounded-2xl shadow-xl flex items-center gap-3 border border-teal-500/40">
+            <div className="p-2 bg-teal-500/20 rounded-xl text-amber-400">
+              <Trophy className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-[10px] font-black uppercase tracking-wider text-yellow-200 flex items-center gap-1">
-                <Sparkles className="w-3 h-3" /> Nowy Medal Odblokowany!
+              <div className="text-[11px] font-semibold text-teal-400">
+                Nowy medal odblokowany
               </div>
               <div className="text-sm font-bold">{newlyUnlockedToast.title}</div>
-              <div className="text-xs text-white/90">{newlyUnlockedToast.description}</div>
+              <div className="text-xs text-slate-300">{newlyUnlockedToast.description}</div>
             </div>
             <button
               type="button"
@@ -469,7 +557,7 @@ export default function App() {
                 setNewlyUnlockedToast(null);
                 setIsAchievementsOpen(true);
               }}
-              className="ml-2 px-3 py-1.5 rounded-xl bg-white text-teal-900 font-bold text-xs hover:bg-yellow-50"
+              className="ml-2 px-3 py-1.5 rounded-xl bg-teal-600 text-white font-bold text-xs hover:bg-teal-500 cursor-pointer"
             >
               Zobacz
             </button>
@@ -478,45 +566,46 @@ export default function App() {
       )}
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8">
-        {/* Smart Micro-Break Quick Status Bar */}
-        <div className="mb-6 p-3 sm:p-4 rounded-2xl bg-teal-500/10 border border-teal-500/20 dark:border-teal-500/30 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-teal-600 text-white flex items-center justify-center shrink-0">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3.5 sm:px-6 pt-4 pb-24 sm:py-8 lg:pb-12">
+        {/* Compact Smart Micro-Break Status Bar */}
+        <div className="mb-5 px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between gap-3 shadow-2xs">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-xl bg-teal-50 dark:bg-teal-950/80 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0">
               <Zap className="w-4 h-4" />
             </div>
-            <div>
-              <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <span>30-sekundowa mikro-przerwa (Retrakcja szyi)</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-teal-600/10 text-teal-700 dark:text-teal-300 font-bold">
-                  Aktywna ochrona C5-C7
+            <div className="min-w-0">
+              <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5 truncate">
+                <span className="truncate">Mikro-przerwa 30s (Retrakcja szyi)</span>
+                <span className="hidden sm:inline text-slate-300 dark:text-slate-700">·</span>
+                <span className="hidden sm:inline text-[11px] font-medium text-teal-600 dark:text-teal-400">
+                  Ochrona C5–C7
                 </span>
               </div>
-              <p className="text-[11px] text-slate-600 dark:text-slate-400">
-                Wykrywanie dłuższej pracy bez ruchu aktywuje inteligentne powiadomienie PWA/przeglądarki.
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:block truncate">
+                Szybkie odciążenie kręgosłupa szyjnego podczas pracy przy komputerze.
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {notificationPermission === 'default' && (
               <button
                 type="button"
                 onClick={requestPermission}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-teal-300 dark:border-teal-700 text-teal-700 dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-950 text-xs font-semibold transition-all cursor-pointer"
+                className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-semibold transition-colors whitespace-nowrap cursor-pointer"
               >
-                <Bell className="w-3.5 h-3.5" />
-                <span>Włącz powiadomienia PWA</span>
+                <Bell className="w-3.5 h-3.5 text-teal-600" />
+                <span>Powiadomienia</span>
               </button>
             )}
 
             <button
               type="button"
               onClick={triggerManualMicroBreak}
-              className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs shadow-xs transition-all cursor-pointer"
+              className="min-h-[38px] flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs transition-all active:scale-95 whitespace-nowrap cursor-pointer"
             >
               <Clock className="w-3.5 h-3.5" />
-              <span>Zrób 30s Przerwę Teraz</span>
+              <span>Przerwa 30s</span>
             </button>
           </div>
         </div>
@@ -711,12 +800,12 @@ export default function App() {
       </main>
 
       {/* Footer with Medical Disclaimers, Privacy Notice & Dedicated Theme Switcher */}
-      <footer className="mt-auto border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 text-xs py-8 px-4 sm:px-6">
+      <footer className="mt-auto border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 text-xs pt-6 pb-24 lg:py-8 px-4 sm:px-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-5 text-center md:text-left">
           <div className="space-y-1">
             <div className="flex items-center justify-center md:justify-start gap-2 font-bold text-slate-800 dark:text-slate-200">
               <ShieldCheck className="w-4 h-4 text-emerald-500" />
-              <span>FizjoSzyja & Kręgosłup • Zgodne ze standardem Moje Fizjo / gov.pl</span>
+              <span>FizjoSzyja & Kręgosłup · Lokalne dane medyczne na urządzeniu</span>
             </div>
             <p className="text-[11px] text-slate-600 dark:text-slate-400 max-w-2xl">
               Aplikacja ma charakter wspomagający, profilaktyczny i edukacyjny. W przypadku wystąpienia objawów alarmowych (tzw. czerwonych flag: silne zawroty głowy, niedowłady, omdlenia) należy niezwłocznie zgłosić się do lekarza lub na SOR (112/999).
@@ -730,25 +819,25 @@ export default function App() {
               type="button"
               onClick={() => handleForceSwitchTheme()}
               title={isDarkMode ? 'Wymuś tryb jasny (ignorując ustawienia systemu operacyjnego)' : 'Wymuś tryb ciemny (ignorując ustawienia systemu operacyjnego)'}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-300 dark:border-slate-700 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition-all shadow-xs cursor-pointer group"
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition-all cursor-pointer group"
             >
               {isDarkMode ? (
                 <>
-                  <Sun className="w-3.5 h-3.5 text-amber-500 group-hover:rotate-45 transition-transform" />
-                  <span>Wymuś Jasny Motyw</span>
+                  <Sun className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Jasny motyw</span>
                 </>
               ) : (
                 <>
-                  <Moon className="w-3.5 h-3.5 text-indigo-400 group-hover:-rotate-12 transition-transform" />
-                  <span>Wymuś Ciemny Motyw</span>
+                  <Moon className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>Ciemny motyw</span>
                 </>
               )}
-              <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-teal-500/15 text-teal-700 dark:text-teal-300 font-mono">
-                {themeMode === 'system' ? 'System' : 'Wymuszony'}
+              <span className="text-[10px] text-teal-600 dark:text-teal-400 font-mono">
+                · {themeMode === 'system' ? 'Auto' : 'Ręczny'}
               </span>
             </button>
 
-            <span className="hidden sm:inline text-slate-300 dark:text-slate-700">•</span>
+            <span className="hidden sm:inline text-slate-300 dark:text-slate-700">·</span>
             <button
               type="button"
               onClick={() => setIsConsentModalOpen(true)}
@@ -756,7 +845,7 @@ export default function App() {
             >
               Świadoma Zgoda & RODO
             </button>
-            <span className="hidden sm:inline text-slate-300 dark:text-slate-700">•</span>
+            <span className="hidden sm:inline text-slate-300 dark:text-slate-700">·</span>
             <button
               type="button"
               onClick={() => setIsRedFlagsModalOpen(true)}
@@ -764,20 +853,44 @@ export default function App() {
             >
               Czerwone Flagi (SOR 112)
             </button>
-            <span className="hidden sm:inline text-slate-300 dark:text-slate-700">•</span>
+            <span className="hidden sm:inline text-slate-300 dark:text-slate-700">·</span>
             <button
               type="button"
               onClick={() => setIsFeedbackModalOpen(true)}
               className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:underline cursor-pointer"
             >
-              Zgłoś uwagę / Błąd
+              Zgłoś uwagę
             </button>
-            <span className="px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 font-semibold ml-1">
-              🔒 100% On-Device Storage
-            </span>
           </div>
         </div>
       </footer>
+
+      {/* Mobile Bottom Tab Bar + "Więcej" Bottom-Sheet + Floating Quick Action FAB */}
+      <MobileBottomNav
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
+        onStartTodaySession={() => handleStartSession(todayExercises.length > 0 ? todayExercises : [EXERCISES[0]], todayPlanDay)}
+        onTriggerMicroBreak={triggerManualMicroBreak}
+        onOpenAchievements={() => setIsAchievementsOpen(true)}
+        onOpenBreathingModal={() => setIsBreathingModalOpen(true)}
+        onOpenBpsModal={() => setIsBpsModalOpen(true)}
+        onOpenRedFlagsModal={() => setIsRedFlagsModalOpen(true)}
+        onQuickSaveVas={handleQuickSaveVas}
+        todayExercisesCount={todayExercises.length || 3}
+        todayEstimatedMinutes={todayPlanDay?.estimatedMinutes || 10}
+        unlockedMedalsCount={unlockedMedalsCount}
+        streakDays={appState.profile.streakDays}
+        hideFab={
+          !!activeSessionExercises ||
+          !!selectedExercise ||
+          isConsentModalOpen ||
+          isRedFlagsModalOpen ||
+          isFeedbackModalOpen ||
+          isAchievementsOpen ||
+          isBreathingModalOpen ||
+          isBpsModalOpen
+        }
+      />
 
       {/* Medical Onboarding & Patient Consent Modal */}
       <MedicalOnboardingModal
@@ -804,7 +917,7 @@ export default function App() {
         <ExerciseModal
           exercise={selectedExercise}
           onClose={() => setSelectedExercise(null)}
-          onStartExercise={(ex) => {
+          onStartSession={(ex) => {
             setSelectedExercise(null);
             handleStartSession([ex]);
           }}

@@ -76,50 +76,49 @@ export const ExerciseCard: React.FC<Props> = ({
           {exercise.description}
         </p>
 
-        {/* Target Muscles */}
-        <div className="mt-3 flex flex-wrap gap-1.5">
+        {/* Target Muscles (clean unboxed metadata) */}
+        <div className="mt-3 flex flex-wrap items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
           {exercise.targetMuscles.slice(0, 2).map((m, idx) => (
-            <span
-              key={idx}
-              className="text-[11px] bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700/60"
-            >
-              {m}
-            </span>
+            <React.Fragment key={idx}>
+              {idx > 0 && <span aria-hidden="true">·</span>}
+              <span>{m}</span>
+            </React.Fragment>
           ))}
         </div>
 
-        {/* Dosing parameters */}
-        <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
+        {/* Dosing parameters & Video HUD indicator */}
+        <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 font-mono tabular-nums">
           <div className="flex items-center gap-1">
             <CheckCircle2 className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
-            <span>{exercise.defaultSets} serie × {exercise.defaultReps} powt.</span>
+            <span>{exercise.defaultSets}×{exercise.defaultReps} powt.</span>
+            <span aria-hidden="true">·</span>
+            <span>{exercise.defaultHoldSeconds}s hold</span>
           </div>
-          <div className="flex items-center gap-1">
-            <Clock className="w-3.5 h-3.5 text-amber-500" />
-            <span>Zatrzymanie: {exercise.defaultHoldSeconds}s</span>
+          <div className="flex items-center gap-1 text-teal-600 dark:text-teal-400 font-sans font-semibold text-[11px]">
+            <span>HUD · 0.5x · Pętla</span>
           </div>
         </div>
       </div>
 
       {/* Action Buttons */}
-      <div className="mt-5 grid grid-cols-2 gap-2 pt-2">
+      <div className="mt-4 grid grid-cols-2 gap-2 pt-2">
         <button
           id={`view-technique-btn-${exercise.id}`}
           type="button"
           onClick={() => onOpenDetails(exercise)}
-          className="flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors"
+          className="min-h-[44px] flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer whitespace-nowrap"
         >
-          <Eye className="w-3.5 h-3.5" />
-          <span>Wideo & Technika</span>
+          <Eye className="w-3.5 h-3.5 shrink-0" />
+          <span>Wideo HD & HUD</span>
         </button>
 
         <button
           id={`start-exercise-btn-${exercise.id}`}
           type="button"
           onClick={() => onQuickStart(exercise)}
-          className="flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl bg-teal-600 hover:bg-teal-500 text-white shadow-xs transition-colors"
+          className="min-h-[44px] flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl bg-teal-600 hover:bg-teal-500 text-white shadow-xs transition-colors cursor-pointer whitespace-nowrap"
         >
-          <Play className="w-3.5 h-3.5 fill-current" />
+          <Play className="w-3.5 h-3.5 fill-current shrink-0" />
           <span>Ćwicz teraz</span>
         </button>
       </div>

@@ -181,20 +181,19 @@ export const CompletedSessionsCalendarGrid: React.FC<CompletedSessionsCalendarGr
       {/* Header: Title + Navigation */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-100 dark:border-slate-800">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-50 dark:bg-teal-950/60 border border-teal-200 dark:border-teal-800 text-teal-700 dark:text-teal-300 text-xs font-semibold mb-1.5">
+          <div className="flex items-center gap-2 text-xs text-teal-700 dark:text-teal-400 font-semibold mb-1">
             <CalendarIcon className="w-3.5 h-3.5" />
             <span>Kalendarz Ukończonych Sesji</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white capitalize">
-              {monthName}
-            </h3>
-            <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/70 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 font-mono">
-              {currentMonthCompletedCount} zrealizowanych
+            <span aria-hidden="true">·</span>
+            <span className="font-mono text-emerald-700 dark:text-emerald-400">
+              {currentMonthCompletedCount} zrealizowanych w tym miesiącu
             </span>
           </div>
+          <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white capitalize">
+            {monthName}
+          </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Wizualizacja systematyczności treningowej na podstawie bazy ukończonych sesji (completedSessionDates).
+            Wizualizacja dni z wykonanymi sesjami treningowymi (znaczniki aktywności na podstawie completedSessionDates).
           </p>
         </div>
 
@@ -335,7 +334,7 @@ export const CompletedSessionsCalendarGrid: React.FC<CompletedSessionsCalendarGr
                     ? `Dzień ${cell.dateStr}: Sesja ukończona`
                     : `Dzień ${cell.dateStr}: Brak sesji`
                 }
-                className={`min-h-[64px] sm:min-h-[76px] p-1.5 sm:p-2 flex flex-col justify-between items-start transition-all relative text-left outline-hidden cursor-pointer ${
+                className={`min-h-[50px] sm:min-h-[72px] p-1 sm:p-2 flex flex-col justify-between items-center sm:items-start transition-all relative text-left outline-hidden cursor-pointer ${
                   !cell.isCurrentMonth
                     ? 'bg-slate-50/40 dark:bg-slate-900/40 text-slate-300 dark:text-slate-700'
                     : 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white hover:bg-teal-50/50 dark:hover:bg-slate-800/70'
@@ -346,9 +345,9 @@ export const CompletedSessionsCalendarGrid: React.FC<CompletedSessionsCalendarGr
                 }`}
               >
                 {/* Top: Day number + "Dziś" badge */}
-                <div className="w-full flex items-center justify-between">
+                <div className="w-full flex items-center justify-center sm:justify-between">
                   <span
-                    className={`text-xs sm:text-sm font-mono font-bold ${
+                    className={`text-xs sm:text-sm font-mono tabular-nums font-bold ${
                       cell.isToday
                         ? 'w-6 h-6 rounded-full bg-teal-600 text-white flex items-center justify-center font-black shadow-xs'
                         : !cell.isCurrentMonth
@@ -367,17 +366,17 @@ export const CompletedSessionsCalendarGrid: React.FC<CompletedSessionsCalendarGr
                 </div>
 
                 {/* Bottom: Completion Indicator */}
-                <div className="w-full mt-auto pt-1 flex items-center justify-between">
+                <div className="w-full mt-auto pt-1 flex items-center justify-center sm:justify-between">
                   {cell.isCompleted ? (
-                    <div className="w-full flex items-center gap-1 px-1.5 py-0.5 rounded-lg bg-emerald-100 dark:bg-emerald-950/90 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                    <div className="sm:w-full flex items-center justify-center sm:justify-start gap-1 px-1.5 py-0.5 rounded-lg bg-emerald-100 dark:bg-emerald-950/90 text-emerald-800 dark:text-emerald-300 border border-emerald-300/80 dark:border-emerald-800">
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                       <span className="text-[10px] font-bold truncate hidden sm:inline">
                         Ukończono
                       </span>
                     </div>
                   ) : cell.isToday ? (
-                    <span className="text-[10px] font-semibold text-teal-600 dark:text-teal-400">
-                      Do zrobienia
+                    <span className="text-[9px] sm:text-[10px] font-semibold text-teal-600 dark:text-teal-400 truncate">
+                      Dziś
                     </span>
                   ) : (
                     <div className="h-4" />
@@ -390,31 +389,28 @@ export const CompletedSessionsCalendarGrid: React.FC<CompletedSessionsCalendarGr
       </div>
 
       {/* Legend & Selected Day Context Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-2 text-xs">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pt-1 text-xs">
         {/* Legend */}
-        <div className="flex flex-wrap items-center gap-4 text-slate-600 dark:text-slate-400">
+        <div className="flex flex-wrap items-center gap-3 text-slate-600 dark:text-slate-400 text-[11px]">
           <span className="font-semibold text-slate-700 dark:text-slate-300">Legenda:</span>
           <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-full bg-emerald-500" />
-            <span>Sesja zrealizowana (completedSessionDates)</span>
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+            <span>Sesja zrealizowana</span>
           </div>
+          <span aria-hidden="true">·</span>
           <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-full bg-teal-600" />
+            <span className="w-2.5 h-2.5 rounded-full bg-teal-600 inline-block" />
             <span>Dzisiejszy dzień</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-full bg-slate-300 dark:bg-slate-700" />
-            <span>Dzień bez sesji</span>
           </div>
         </div>
 
         {/* Selected date quick summary / actions */}
-        <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/80 px-4 py-2 rounded-2xl border border-slate-200 dark:border-slate-700">
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-50 dark:bg-slate-800/80 px-3.5 py-2.5 rounded-2xl border border-slate-200/80 dark:border-slate-700">
           <div>
             <span className="text-[11px] text-slate-500 dark:text-slate-400 block font-medium capitalize">
               {selectedFormattedDate}
             </span>
-            <div className="flex items-center gap-1.5 font-bold">
+            <div className="flex items-center gap-1.5 font-bold mt-0.5">
               {isSelectedCompleted ? (
                 <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                   <CheckCircle2 className="w-3.5 h-3.5" /> Sesja zaliczona
@@ -427,31 +423,31 @@ export const CompletedSessionsCalendarGrid: React.FC<CompletedSessionsCalendarGr
             </div>
           </div>
 
-          {/* Optional toggle button if parent provided onToggleCompletedDate */}
-          {onToggleCompletedDate && (
-            <button
-              id={`toggle-complete-date-btn-${selectedDateStr}`}
-              type="button"
-              onClick={() => onToggleCompletedDate(selectedDateStr)}
-              className="ml-auto px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-600 hover:bg-white dark:hover:bg-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-200 transition-colors cursor-pointer"
-              title="Przełącz status ukończenia dla tego dnia"
-            >
-              {isSelectedCompleted ? 'Cofnij' : 'Oznacz jako ukończoną'}
-            </button>
-          )}
+          <div className="flex items-center gap-2 ml-auto">
+            {onToggleCompletedDate && (
+              <button
+                id={`toggle-complete-date-btn-${selectedDateStr}`}
+                type="button"
+                onClick={() => onToggleCompletedDate(selectedDateStr)}
+                className="min-h-[38px] px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-600 hover:bg-white dark:hover:bg-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-200 transition-colors cursor-pointer whitespace-nowrap"
+                title="Przełącz status ukończenia dla tego dnia"
+              >
+                {isSelectedCompleted ? 'Cofnij' : 'Oznacz ukończenie'}
+              </button>
+            )}
 
-          {/* If today and not completed, button to start session */}
-          {isSelectedToday && !isSelectedCompleted && onStartSession && (
-            <button
-              id="calendar-grid-start-today-session-btn"
-              type="button"
-              onClick={onStartSession}
-              className="ml-auto flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs shadow-xs transition-all cursor-pointer"
-            >
-              <Play className="w-3 h-3 fill-current" />
-              <span>Zacznij</span>
-            </button>
-          )}
+            {isSelectedToday && !isSelectedCompleted && onStartSession && (
+              <button
+                id="calendar-grid-start-today-session-btn"
+                type="button"
+                onClick={onStartSession}
+                className="min-h-[38px] flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs shadow-xs transition-all cursor-pointer whitespace-nowrap"
+              >
+                <Play className="w-3 h-3 fill-current" />
+                <span>Zacznij</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

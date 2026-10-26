@@ -1,6 +1,7 @@
 import { Exercise } from '../types';
+import { VIDEO_INSTRUCTIONS_BY_ID } from './videoInstructions';
 
-export const EXERCISES: Exercise[] = [
+const RAW_EXERCISES: Exercise[] = [
   {
     id: 'chin-tuck',
     name: 'Chin Tuck (Retrakcja szyjna)',
@@ -437,3 +438,9 @@ export const EXERCISES: Exercise[] = [
     videoInstructor: 'Klinika Rehabilitacji – Oddech Dolnożebrowy w Bólu Szyi'
   }
 ];
+
+export const EXERCISES: Exercise[] = RAW_EXERCISES.map((ex) => ({
+  ...ex,
+  videoInstruction: VIDEO_INSTRUCTIONS_BY_ID[ex.id] || VIDEO_INSTRUCTIONS_BY_ID['chin-tuck']
+}));
+
